@@ -49,7 +49,7 @@ The native scanner has no runtime dependencies. Optional analyzer stages need th
 
 ## Interactive terminal launch
 
-The interactive identity uses accent `#CBA6F7` and foreground `#CDD6F4`. Reference background `#1E1E2E` informs the design; FUSE preserves the terminal background. Narrow terminals use a compact title, legacy encodings use ASCII, and `NO_COLOR` disables ANSI colors. Explicit commands and redirected output omit decoration.
+FUSE preserves the terminal background and displays its own banner. Narrow terminals use a compact title, legacy encodings use ASCII, and `NO_COLOR` disables ANSI colors. Explicit commands and redirected output omit decoration.
 
 Open a terminal in the project folder and run:
 
@@ -57,9 +57,11 @@ Open a terminal in the project folder and run:
 vigil-fuse
 ```
 
-FUSE shows the resolved folder before it asks whether to scan. Answer `N` to cancel if the terminal opened in the wrong folder. After you confirm, choose a full project scan, a framework profile, dependency analysis, a Binwalk firmware signature scan, or Ghidra binary analysis. Dependency analysis uses Syft and OSV-Scanner if installed. Ghidra analyzes one executable or firmware image and FUSE checks the structured evidence it returns. The adapter does not export or scan decompiled pseudocode. Use `vigil-fuse doctor` to check optional tools.
+The shell starts with the current directory as its target. Type `/help` for commands, `/target "path with spaces"` to switch targets, `/profile esp-idf` to select a profile, `/plan` to preview, and `/scan` to run. `/findings` reviews the latest completed result without rescanning; `/doctor`, `/status`, and `/exit` remain available in the same session. Explicit target paths on scan commands are resolved as they are in the ordinary CLI. Optional analysis commands reuse the corresponding scan options; `/baseline` accepts the normal baseline subcommands.
 
-After a completed scan, FUSE asks whether to create a PDF report. This optional output uses `pdflatex` and is saved as `.fuse-results/fuse-report.pdf`; the `.tex` source is kept if `pdflatex` is not installed. The normal JSON, text, and SARIF reports are written independently.
+Install `vigil-fuse[cliui]` to enable slash-command suggestions and editing on supported terminals. Tab accepts a suggestion, arrow keys navigate suggestions or history, Escape dismisses suggestions, Ctrl+L clears, and Ctrl+D exits on an empty prompt. History is session-only and stores command names only, so paths and option values are not retained. Without the extra, or with `TERM=dumb`, FUSE uses basic input without completion or keyboard history. Ctrl+C cancels the current input. During a dispatched operation, FUSE ignores Ctrl+C until it finishes to avoid leaving analyzer workers behind.
+
+Scans use the same report and analyzer behavior as the ordinary CLI. Ghidra inspects one binary and does not export decompiled pseudocode. See `vigil-fuse scan --help` for options for report options.
 
 ## Preview a scan
 

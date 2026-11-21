@@ -11,7 +11,7 @@ import subprocess
 import sys
 from dataclasses import replace
 from pathlib import Path
-from typing import Literal, TextIO, TypedDict
+from typing import Callable, Literal, TextIO, TypedDict
 
 from . import __version__
 from .analyzer_sandbox import AnalyzerSandbox, parse_image_assignments
@@ -40,6 +40,11 @@ from .ghidra_analyzer import (
     detect_binary_input,
 )
 from .esp_idf_lock import lock_parser_available
+from .frontier_cli import (
+    frontier_hints,
+    register_commands as register_frontier_commands,
+    run_command as run_frontier_command,
+)
 from .hardware_bom import hardware_bom_document
 from .model import AnalysisArtifact, AnalyzerStatus, ScanResult
 from .platform_context import detect_project_frameworks, resolve_build_dir
@@ -100,6 +105,8 @@ class _ScanPlan(TypedDict):
     selected_zephyr_hardening_report: str | None
     detected_frameworks: list[_FrameworkHint]
     framework_hints_are_advisory: bool
+    frontier_hints: list[_FrameworkHint]
+    frontier_hints_note: str
     build_context: dict[str, object]
     discovery_preview: DiscoveryPreview | None
     support: CapabilitySummary
@@ -149,6 +156,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--version", action="version", version=f"FUSE {__version__}")
     commands = parser.add_subparsers(dest="command")
+    register_frontier_commands(commands)
     inspect_parser = commands.add_parser("inspect", help="inspect repository characteristics")
     inspect_parser.add_argument("target", type=Path)
     doctor_parser = commands.add_parser(
@@ -1064,6 +1072,17 @@ def _scan_plan(
             }
         )
 
+    cyber_physical_hints = (
+        frontier_hints(
+            discovery_preview["selected_files_sample"],
+            discovery_preview["unsupported_file_types"],
+            discovery_preview["hardware_category_counts"],
+            has_bom=hardware_bom is not None,
+            has_netlist=hardware_netlist is not None,
+        )
+        if discovery_preview is not None
+        else []
+    )
     plan: _ScanPlan = {
         "target": shareable_target,
         "target_kind": kind,
@@ -1077,6 +1096,11 @@ def _scan_plan(
         "selected_zephyr_hardening_report": selected_hardening_report,
         "detected_frameworks": framework_hints,
         "framework_hints_are_advisory": True,
+        "frontier_hints": cyber_physical_hints,
+        "frontier_hints_note": (
+            "Advisory filename evidence only; selected-file samples are capped at 100. "
+            "An absent hint is not proof of absence, and scan does not run these commands."
+        ),
         "build_context": {
             "platformio": {
                 "status": platformio_inventory.status,
@@ -1160,6 +1184,11 @@ def _scan_plan(
                 f"translation unit(s); commands will not run."
             )
         _safe_print(f"Selected profile controls analyzer routing: {profile}")
+        for hint in cyber_physical_hints:
+            _safe_print(
+                f"Experimental command available: {hint['name']} ({'; '.join(hint['evidence'])})"
+            )
+        _safe_print(plan["frontier_hints_note"])
         if discovery_preview is not None:
             _safe_print(
                 "Discovery preview: "
@@ -1454,7 +1483,7 @@ def _interactive_launch(*, confirm: bool = True) -> int:
         _safe_print("Choose a scan type from 0 through 5. Scan cancelled.", file=sys.stderr)
         return 2
 
-    return main(scan_args, _show_banner=False, _prompt_for_pdf=True)
+    return main(scan_args, _show_banner=False, _prompt_for_pdf=True, _interactive_scan=True)
 
 
 def _interactive_shell() -> int:
@@ -1508,7 +1537,10 @@ def _interactive_shell() -> int:
             continue
 
         if name in {"/clear", "clear"}:
-            os.system("cls" if os.name == "nt" else "clear")
+            sys.stdout.write("\033[2J\033[H")
+            sys.stdout.flush()
+
+            # Restore the FUSE startup screen.
             show_banner()
             _safe_print(f"\n  Workspace: {Path.cwd()}\n")
             continue
@@ -1540,7 +1572,11 @@ def _interactive_shell() -> int:
                 _safe_print(f"Invalid command arguments: {error}")
                 continue
             try:
-                main([name.lstrip("/"), *args], _show_banner=False)
+                main(
+                    [name.lstrip("/"), *args],
+                    _show_banner=False,
+                    _interactive_scan=name in {"/scan", "scan"},
+                )
             except SystemExit as error:
                 # argparse raises SystemExit for --help and invalid syntax;
                 # returning to the shell should not terminate this session.
@@ -1556,6 +1592,8 @@ def main(
     *,
     _show_banner: bool = True,
     _prompt_for_pdf: bool = False,
+    _result_callback: Callable[[ScanResult, Path | None], None] | None = None,
+    _interactive_scan: bool = False,
 ) -> int:
     actual_argv = list(argv) if argv is not None else sys.argv[1:]
     if not actual_argv and sys.stdin.isatty() and sys.stdout.isatty() and sys.stderr.isatty():
@@ -1568,6 +1606,8 @@ def main(
     if args.command is None:
         parser.print_help()
         return 0
+    if args.command in {"digital-twin", "flight-bus", "seu", "physical-reachability"}:
+        return run_frontier_command(args)
     if args.command == "inspect":
         try:
             dna = inspect_repository(args.target)
@@ -1848,30 +1888,34 @@ def main(
                 rule_timeout_seconds=args.rule_timeout,
             )
 
-        result = scan(
-            args.target,
-            profile=profile,
-            target_label=target_label,
-            include=include,
-            exclude=exclude,
-            disabled_rules=disabled_rules,
-            max_file_bytes=max_file_bytes,
-            max_firmware_bytes=max_firmware_bytes,
-            max_discovered_paths=max_discovered_paths,
-            max_discovered_directories=max_discovered_directories,
-            max_source_bytes=max_source_bytes,
-            max_scan_seconds=max_scan_seconds,
-            rule_timeout_seconds=args.rule_timeout,
-            firmware_image=firmware_input,
-            sbom_input=sbom_input,
-            build_dir=args.build_dir,
-            zephyr_hardening_report=args.zephyr_hardening_report,
-            platformio_config=args.platformio_config,
-            platformio_environments=tuple(args.platformio_env),
-            compile_commands=args.compile_commands,
-            hardware_bom=args.hardware_bom,
-            hardware_netlist=args.hardware_netlist,
-        )
+        if _interactive_scan:
+            from .cliui import ScanProgress
+
+        with ScanProgress() if _interactive_scan else nullcontext():
+            result = scan(
+                args.target,
+                profile=profile,
+                target_label=target_label,
+                include=include,
+                exclude=exclude,
+                disabled_rules=disabled_rules,
+                max_file_bytes=max_file_bytes,
+                max_firmware_bytes=max_firmware_bytes,
+                max_discovered_paths=max_discovered_paths,
+                max_discovered_directories=max_discovered_directories,
+                max_source_bytes=max_source_bytes,
+                max_scan_seconds=max_scan_seconds,
+                rule_timeout_seconds=args.rule_timeout,
+                firmware_image=firmware_input,
+                sbom_input=sbom_input,
+                build_dir=args.build_dir,
+                zephyr_hardening_report=args.zephyr_hardening_report,
+                platformio_config=args.platformio_config,
+                platformio_environments=tuple(args.platformio_env),
+                compile_commands=args.compile_commands,
+                hardware_bom=args.hardware_bom,
+                hardware_netlist=args.hardware_netlist,
+            )
         network_policy = (
             "no-network"
             if args.no_network
@@ -1893,25 +1937,29 @@ def main(
                 else nullcontext()
             )
             with sandbox_scope:
-                result = _analyze_with_optional_tools(
-                    result,
-                    analyzer_target,
-                    output_dir,
-                    sbom=sbom,
-                    vulnerabilities=vulnerabilities,
-                    firmware=firmware,
-                    firmware_image=firmware_input,
-                    ghidra=ghidra,
-                    ghidra_install_dir=ghidra_install_dir,
-                    ghidra_timeout_seconds=ghidra_timeout_seconds,
-                    ghidra_language=args.ghidra_language,
-                    ghidra_base_address=args.ghidra_base_address,
-                    ghidra_compiler_spec=args.ghidra_compiler_spec,
-                    git_history=git_history,
-                    offline_vulnerabilities=offline_vulnerabilities,
-                    no_network=args.no_network,
-                    sbom_input=sbom_input,
-                )
+                if _interactive_scan:
+                    from .cliui import ScanProgress
+
+                with ScanProgress(optional=True) if _interactive_scan else nullcontext():
+                    result = _analyze_with_optional_tools(
+                        result,
+                        analyzer_target,
+                        output_dir,
+                        sbom=sbom,
+                        vulnerabilities=vulnerabilities,
+                        firmware=firmware,
+                        firmware_image=firmware_input,
+                        ghidra=ghidra,
+                        ghidra_install_dir=ghidra_install_dir,
+                        ghidra_timeout_seconds=ghidra_timeout_seconds,
+                        ghidra_language=args.ghidra_language,
+                        ghidra_base_address=args.ghidra_base_address,
+                        ghidra_compiler_spec=args.ghidra_compiler_spec,
+                        git_history=git_history,
+                        offline_vulnerabilities=offline_vulnerabilities,
+                        no_network=args.no_network,
+                        sbom_input=sbom_input,
+                    )
         if args.product_purl:
             result = replace(result, product_purl=args.product_purl)
         if args.vex:
@@ -1957,7 +2005,11 @@ def main(
         if output_dir is not None:
             _write_reports(result, output_dir)
             _safe_print(f"Reports written to {output_dir}", file=sys.stderr)
-            if args.output_dir is None and config.output_dir is None:
+            if (
+                args.output_dir is None
+                and config.output_dir is None
+                and (not _interactive_scan or args.format != "text")
+            ):
                 sys.stdout.write(
                     to_json(result)
                     if args.format == "json"
@@ -1986,9 +2038,17 @@ def main(
                 if args.format == "sarif"
                 else to_text(result)
             )
+        if _result_callback is not None:
+            _result_callback(result, output_dir or (args.output.resolve() if args.output else None))
+        if _interactive_scan:
+            from .cliui import present_scan_result
+
+            present_scan_result(
+                result, output_dir or (args.output.resolve() if args.output else None)
+            )
         if _prompt_for_pdf:
             try:
-                report_answer = input("Generate an aesthetic PDF report? [y/N] ").strip().casefold()
+                report_answer = input("Create a PDF report? [y/N] ").strip().casefold()
             except EOFError:
                 report_answer = ""
             if report_answer in {"y", "yes"} and output_dir is not None:
