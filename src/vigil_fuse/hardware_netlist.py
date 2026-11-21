@@ -53,6 +53,7 @@ class NetlistTopology:
     status: str
     path: str | None = None
     sha256: str | None = None
+    components: tuple[str, ...] = ()
     nets: tuple[NetlistNet, ...] = ()
     limitations: tuple[str, ...] = ()
 
@@ -109,7 +110,10 @@ def read_netlist_topology(root: Path, supplied: str | Path) -> NetlistTopology:
     digest = hashlib.sha256(data).hexdigest()
     components_section = document.find("components")
     nets_section = document.find("nets")
-    if document.tag != "export" or components_section is None or nets_section is None:
+    if document.tag != "export":
+        return NetlistTopology("unsupported", display, digest,
+                               limitations=("XML root is not a KiCad export.",))
+    if components_section is None or nets_section is None:
         return NetlistTopology(
             "partial", display, digest, limitations=("Missing KiCad export sections.",)
         )
@@ -157,6 +161,7 @@ def read_netlist_topology(root: Path, supplied: str | Path) -> NetlistTopology:
         "partial" if incomplete else "parsed",
         display,
         digest,
+        tuple(sorted(components)),
         tuple(sorted(nets, key=lambda net: (net.name, repr(net.endpoints)))),
         tuple(limitations),
     )

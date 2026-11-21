@@ -29,7 +29,7 @@ def test_invalid_and_unsupported_are_never_complete() -> None:
 
 def test_quoted_delimiters_and_comments() -> None:
     result = parse_device_tree(b'/ { x { compatible = "test;{x}"; /* } */ }; };')
-    assert result.status == "partial"
+    assert result.status == "parsed"
     assert result.nodes[-1].property("compatible") == '"test;{x}"'
 
 

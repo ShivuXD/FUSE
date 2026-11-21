@@ -37,6 +37,10 @@ def parse_device_tree(data: bytes) -> DeviceTreeResult:
     except UnicodeDecodeError:
         return DeviceTreeResult("invalid", limitations=("DTS is not UTF-8",))
 
+    preprocessing = bool(re.search(
+        r"(?m)^[ \t]*#[ \t]*(?:include|define|if|ifdef|ifndef|elif|else|endif|undef)\b",
+        text,
+    ))
     # Preprocessor directives are not DTS properties and cannot be expanded safely.
     text = re.sub(
         r"(?m)^[ \t]*#[ \t]*(?:include|define|if|ifdef|ifndef|elif|else|endif|undef)\b[^\n]*",
@@ -69,7 +73,7 @@ def parse_device_tree(data: bytes) -> DeviceTreeResult:
             i += 1
             pending.append(text[start:i])
         elif text[i] in "{};":
-            if len(tokens) >= MAX_DTS_STATEMENTS:
+            if len(tokens) // 2 >= MAX_DTS_STATEMENTS:
                 return DeviceTreeResult("invalid", limitations=("DTS statement limit exceeded",))
             tokens.append(("".join(pending).strip(), text[i]))
             pending.clear()
@@ -82,7 +86,9 @@ def parse_device_tree(data: bytes) -> DeviceTreeResult:
 
     stack: list[tuple[str, str | None, list[tuple[str, str]]]] = []
     nodes: list[DeviceTreeNode] = []
-    limitations = {"Includes, macros, references and overlays are not resolved."}
+    limitations: set[str] = set()
+    if preprocessing:
+        limitations.add("Preprocessor includes and conditions were not resolved.")
     for statement, delimiter in tokens:
         if delimiter == "{":
             if len(stack) >= MAX_DTS_DEPTH or len(nodes) + len(stack) >= MAX_DTS_NODES:
@@ -108,12 +114,19 @@ def parse_device_tree(data: bytes) -> DeviceTreeResult:
             if not re.fullmatch(r"[\w,._+?#\-]+", name):
                 limitations.add("Unsupported property syntax.")
                 continue
+            if "&" in value:
+                limitations.add("Phandle references were recorded as text but not resolved.")
+            # Uppercase tokens outside strings commonly name macros or constants.
+            unquoted = re.sub(r'"(?:\\.|[^"\\])*"', '""', value)
+            if re.search(r"\b[A-Z_][A-Z_0-9]*\b", unquoted):
+                limitations.add("Macro or symbolic property values were not resolved.")
             stack[-1][2].append((name, value.strip() if separator else ""))
     if stack:
         return DeviceTreeResult("invalid", limitations=("Unclosed node",))
     if not nodes:
         return DeviceTreeResult("invalid", limitations=("No literal nodes found",))
-    # shortcut: preprocessing completeness cannot be established, upgrade with a bounded resolver.
     return DeviceTreeResult(
-        "partial", tuple(sorted(nodes, key=lambda n: n.path)), tuple(sorted(limitations))
+        "partial" if limitations else "parsed",
+        tuple(sorted(nodes, key=lambda n: n.path)),
+        tuple(sorted(limitations)),
     )

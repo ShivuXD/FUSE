@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 import re
+from typing import Literal
 
 from .device_tree import DeviceTreeNode, DeviceTreeResult
 from .hardware_netlist import NetlistTopology
@@ -12,6 +13,10 @@ from .hardware_netlist import NetlistTopology
 MAX_RESOURCE_PINS = 256
 MAX_PHYSICAL_CONNECTIONS = 10_000
 MAX_REG_CELLS = 128
+PhysicalStatus = Literal[
+    "PHYSICALLY_EXPOSED", "PHYSICALLY_INTERNAL", "PHYSICALLY_UNROUTED",
+    "DEVICE_DISABLED", "UNKNOWN", "PARTIAL", "UNSUPPORTED",
+]
 
 
 @dataclass(frozen=True)
@@ -54,7 +59,8 @@ def find_resource_candidates(
     tree: DeviceTreeResult, *, compatible: str | None = None, mmio: int | None = None
 ) -> ResourceCandidates:
     """Match literal identifiers without resolving preprocessing or bus translation."""
-    if (compatible is None and mmio is None) or (compatible is not None and not compatible):
+    if ((compatible is None and mmio is None) or (compatible is not None and not compatible)
+            or (compatible is not None and len(compatible) > 1024)):
         raise ValueError("A compatible identifier or register address is required")
     if mmio is not None and (type(mmio) is not int or not 0 <= mmio < 1 << 64):
         raise ValueError("Register address must be an unsigned 64-bit integer")
@@ -129,7 +135,7 @@ class PhysicalReachability:
     finding_id: str
     resource_id: str
     device_tree_node: str
-    physical_status: str
+    physical_status: PhysicalStatus
     confidence: str
     observed_device_status: str | None
     connections: tuple[PhysicalConnection, ...]
@@ -153,6 +159,7 @@ def correlate_physical_evidence(
         "Netlist connector candidates do not prove physical access or exploitability.",
     ]
     connections: list[PhysicalConnection] = []
+    mapped_pins_on_nets: set[str] = set()
     if topology.status in {"parsed", "partial"}:
         pins = set(binding.pins)
         for net in topology.nets:
@@ -160,6 +167,7 @@ def correlate_physical_evidence(
                 endpoint.pin for endpoint in net.endpoints
                 if endpoint.reference == binding.component and endpoint.pin in pins
             }
+            mapped_pins_on_nets.update(source_pins)
             for source_pin in sorted(source_pins):
                 for endpoint in net.endpoints:
                     if endpoint.connector_candidate and endpoint.reference != binding.component:
@@ -181,11 +189,32 @@ def correlate_physical_evidence(
         limitations.append("The selected device-tree node is missing or ambiguous.")
     elif nodes[0].property("status") is None:
         limitations.append("No literal device status was observed.")
-    # shortcut: pin bindings and device-tree preprocessing are not verified, upgrade before verdicts.
+    node_status = nodes[0].property("status") if len(nodes) == 1 else None
+    literal_status = node_status.strip().strip('"') if node_status else None
+    if topology.status == "unsupported":
+        status: PhysicalStatus = "UNSUPPORTED"
+    elif tree.status == "invalid" or len(nodes) != 1 or binding.component not in topology.components:
+        status = "UNKNOWN"
+        if binding.component not in topology.components:
+            limitations.append("The mapped component is not present in the supplied netlist.")
+    elif literal_status == "disabled" and tree.status == "parsed":
+        status = "DEVICE_DISABLED"
+    elif connections:
+        status = "PHYSICALLY_EXPOSED"
+    elif tree.status != "parsed" or topology.status != "parsed":
+        status = "PARTIAL"
+    elif mapped_pins_on_nets:
+        status = "PHYSICALLY_INTERNAL"
+    else:
+        status = "PHYSICALLY_UNROUTED"
+    if status in {"PHYSICALLY_EXPOSED", "PHYSICALLY_INTERNAL", "PHYSICALLY_UNROUTED"}:
+        if literal_status != "okay":
+            limitations.append("The peripheral is not explicitly enabled by a literal okay status.")
+    if status == "PHYSICALLY_EXPOSED":
+        limitations.append("PCB copper routing and physical connector access are unverified.")
     return PhysicalReachability(
         binding.finding_id, binding.resource_id, binding.device_tree_node,
-        "PARTIAL" if len(nodes) == 1 and topology.status in {"parsed", "partial"} else "UNKNOWN",
-        "low", nodes[0].property("status") if len(nodes) == 1 else None,
+        status, "low", node_status,
         tuple(sorted(connections, key=lambda c: (c.mcu_pin, c.net, c.endpoint, c.endpoint_pin))),
         binding.mapping_evidence, tuple(limitations),
     )

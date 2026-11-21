@@ -43,6 +43,15 @@ missing or ambiguous. Confidence is low; literal device status is provided only 
 observed text. At most 256 pins and 10,000 connection records are processed per
 binding. No finding severity, applicability or validation status is changed.
 
+For a complete literal tree and complete netlist, a connector candidate on a mapped
+pin is `PHYSICALLY_EXPOSED`; a mapped pin on a net with no connector candidate is
+`PHYSICALLY_INTERNAL`; a component present with no net connection for the mapped
+pins is `PHYSICALLY_UNROUTED`; and an explicitly disabled device node is
+`DEVICE_DISABLED`. These are design-file statuses only. Unknown or incomplete
+evidence remains `UNKNOWN` or `PARTIAL`; unrecognized XML is `UNSUPPORTED`. Even
+`PHYSICALLY_EXPOSED` does not establish PCB copper routing, physical access or
+exploitability.
+
 The command requires an explicit mapping and its evidence:
 
 ```sh

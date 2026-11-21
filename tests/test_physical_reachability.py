@@ -21,12 +21,13 @@ def test_explicit_binding_records_connector_without_claiming_exploitability(tmp_
     binding = ResourceBinding("FUSE-1", "UART2", "/soc/serial@40004400", "U1", ("42",),
                               "Operator-supplied board pin map")
     result = correlate_physical_evidence(binding, tree, read_netlist_topology(tmp_path, board))
-    assert result.physical_status == "PARTIAL"
+    assert result.physical_status == "PHYSICALLY_EXPOSED"
     assert result.observed_device_status == '"okay"'
     assert [(c.mcu_pin, c.net, c.endpoint, c.endpoint_pin) for c in result.connections] == [
         ("42", "UART2_TX", "J3", "2")
     ]
     assert result.confidence == "low"
+    assert any("unverified" in item for item in result.limitations)
 
 
 def test_missing_node_is_unknown_and_empty_mapping_is_rejected(tmp_path: Path) -> None:
@@ -57,3 +58,28 @@ def test_exact_compatible_and_reg_cells_produce_partial_candidate() -> None:
 def test_missing_address_cells_do_not_guess_reg_interpretation() -> None:
     tree = parse_device_tree(b'/ { soc { serial@4000 { reg = <0x4000 0x100>; }; }; };')
     assert not find_resource_candidates(tree, mmio=0x4000).node_paths
+
+
+def test_internal_unrouted_and_disabled_states_require_complete_literals(tmp_path: Path) -> None:
+    path = tmp_path / "board.net"
+    path.write_text('''<export><components><comp ref="U1"/><comp ref="R1"/>
+      </components><nets><net name="INTERNAL"><node ref="U1" pin="42"/>
+      <node ref="R1" pin="1"/></net></nets></export>''', encoding="utf-8")
+    topology = read_netlist_topology(tmp_path, path)
+    binding = ResourceBinding("F1", "UART", "/soc/uart", "U1", ("42",), "mapping")
+    okay = parse_device_tree(b'/ { soc { uart { status = "okay"; }; }; };')
+    assert okay.status == "parsed"
+    assert correlate_physical_evidence(binding, okay, topology).physical_status == "PHYSICALLY_INTERNAL"
+    unconnected = tmp_path / "empty.net"
+    unconnected.write_text('<export><components><comp ref="U1"/></components><nets/></export>')
+    assert correlate_physical_evidence(
+        binding, okay, read_netlist_topology(tmp_path, unconnected)
+    ).physical_status == "PHYSICALLY_UNROUTED"
+    disabled = parse_device_tree(b'/ { soc { uart { status = "disabled"; }; }; };')
+    assert correlate_physical_evidence(binding, disabled, topology).physical_status == "DEVICE_DISABLED"
+
+
+def test_non_kicad_xml_is_unsupported(tmp_path: Path) -> None:
+    path = tmp_path / "other.xml"
+    path.write_text("<other/>")
+    assert read_netlist_topology(tmp_path, path).status == "unsupported"

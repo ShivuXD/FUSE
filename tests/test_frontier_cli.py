@@ -47,7 +47,7 @@ def test_flight_bus_rejects_duplicate_source_assignment(tmp_path: Path, capsys) 
     assert "more than once" in capsys.readouterr().err
 
 
-def test_physical_command_records_evidenced_mapping_and_partial_status(tmp_path: Path, capsys) -> None:
+def test_physical_command_records_evidenced_mapping_and_exposure_status(tmp_path: Path, capsys) -> None:
     (tmp_path / "board.dts").write_text('/ { soc { serial@4000 { status = "okay"; }; }; };',
                                         encoding="utf-8")
     (tmp_path / "board.net").write_text('''<export><components><comp ref="U1"/>
@@ -58,7 +58,7 @@ def test_physical_command_records_evidenced_mapping_and_partial_status(tmp_path:
                    "--node", "/soc/serial@4000", "--component", "U1", "--pin", "42",
                    "--mapping-evidence", "schematic pin map"])
     payload = json.loads(capsys.readouterr().out)
-    assert result == 1 and payload["status"] == "PARTIAL"
+    assert result == 1 and payload["status"] == "PHYSICALLY_EXPOSED"
     assert payload["evidence"]["connections"][0]["endpoint"] == "J1"
     assert len(payload["device_tree"]["sha256"]) == 64
 
@@ -120,5 +120,5 @@ def test_physical_command_exact_resource_matching_does_not_guess_ambiguity(tmp_p
     assert len(ambiguous["resource_candidates"]["node_paths"]) == 2
     assert main([*args, "--mmio", "0x4000"]) == 1
     unique = json.loads(capsys.readouterr().out)
-    assert unique["status"] == "PARTIAL"
+    assert unique["status"] == "PHYSICALLY_EXPOSED"
     assert unique["evidence"]["device_tree_node"] == "/soc/serial@4000"
