@@ -4,6 +4,7 @@ import argparse
 from contextlib import nullcontext
 import hashlib
 import json
+import os
 import platform
 import shutil
 import subprocess
@@ -28,7 +29,6 @@ from .analyzers import (
 from .baseline import create_baseline, diff_baseline, suppress_finding, unsuppress_finding
 from .build_context import inspect_compilation_database, inspect_platformio
 from .config import ScanConfig, load_config
-from .component_graph import build_component_graph
 from .ghidra_analyzer import (
     GHIDRA_DEFAULT_TIMEOUT_SECONDS,
     GHIDRA_MAXIMUM_INPUT_BYTES,
@@ -43,7 +43,6 @@ from .platform_context import detect_project_frameworks, resolve_build_dir
 from .product_context import import_vex, inspect_provenance, validate_package_purl
 from .profiles import PROFILES, get_profile
 from .reporting import to_json, to_text
-from .repo_dna import inspect_repository
 from .report_pdf import write_pdf_report
 from .rule_execution import (
     DEFAULT_RULE_TIMEOUT_SECONDS,
@@ -147,8 +146,6 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--version", action="version", version=f"FUSE {__version__}")
     commands = parser.add_subparsers(dest="command")
-    inspect_parser = commands.add_parser("inspect", help="inspect repository characteristics")
-    inspect_parser.add_argument("target", type=Path)
     doctor_parser = commands.add_parser(
         "doctor", help="show runtime and optional analyzer availability"
     )
@@ -1381,20 +1378,23 @@ def _analyze_with_optional_tools(
     )
 
 
-def _interactive_launch() -> int:
+def _interactive_launch(*, confirm: bool = True) -> int:
     target = Path.cwd()
-    _safe_print("Current folder:", target, file=sys.stderr)
-    _safe_print(
-        "If this is not your project, open a terminal in the project folder before launching FUSE.",
-        file=sys.stderr,
-    )
-    try:
-        answer = input("Run FUSE scan here? [y/N] ").strip().casefold()
-    except EOFError:
-        answer = ""
-    if answer not in {"y", "yes"}:
-        _safe_print("Scan cancelled.", file=sys.stderr)
-        return 0
+    if confirm:
+        _safe_print("Current folder:", target, file=sys.stderr)
+        _safe_print(
+            "If this is not your project, open a terminal in the project folder before launching FUSE.",
+            file=sys.stderr,
+        )
+        try:
+            answer = input("Run FUSE scan here? [y/N] ").strip().casefold()
+        except EOFError:
+            answer = ""
+        if answer not in {"y", "yes"}:
+            _safe_print("Scan cancelled.", file=sys.stderr)
+            return 0
+    else:
+        _safe_print(f"\nScan target: {target}", file=sys.stderr)
 
     _safe_print("Choose a scan type:", file=sys.stderr)
     _safe_print("  1. Full project scan", file=sys.stderr)
@@ -1452,6 +1452,100 @@ def _interactive_launch() -> int:
     return main(scan_args, _show_banner=False, _prompt_for_pdf=True)
 
 
+def _interactive_shell() -> int:
+    """Start the FUSE shell without running a scan until requested."""
+    import shlex
+
+    from .terminal import read_command
+
+    _safe_print(f"\n  Workspace: {Path.cwd()}\n")
+
+    while True:
+        try:
+            command = read_command().strip()
+        except (EOFError, KeyboardInterrupt):
+            _safe_print("\nSession ended. — VIGIL")
+            return 0
+
+        if not command:
+            continue
+
+        name, _, tail = command.partition(" ")
+        name = name.casefold()
+        tail = tail.strip()
+
+        if name in {"/exit", "exit", "quit", "/quit"}:
+            _safe_print("\nSession ended. — VIGIL")
+            return 0
+
+        if name in {"/help", "help", "?"}:
+            _safe_print(
+                "\nFUSE COMMANDS\n"
+                "  /help                 Show this list\n"
+                "  /scan                 Open the interactive scan menu\n"
+                "  /scan PATH [OPTIONS]  Scan a target directly, e.g. /scan . --plan\n"
+                "  /doctor               Check optional analyzers and runtime\n"
+                "  /baseline ...         Run a baseline subcommand (see /baseline --help)\n"
+                "  /pwd                  Show the current workspace\n"
+                "  /cd PATH              Change workspace\n"
+                "  /version              Show the FUSE version\n"
+                "  /clear                Clear the screen\n"
+                "  /exit                 Close FUSE\n"
+            )
+            continue
+
+        if name in {"/pwd", "pwd"}:
+            _safe_print(f"Workspace: {Path.cwd()}")
+            continue
+
+        if name in {"/version", "version"}:
+            _safe_print(f"FUSE v{__version__} — by VIGIL")
+            continue
+
+        if name in {"/clear", "clear"}:
+            os.system("cls" if os.name == "nt" else "clear")
+            show_banner()
+            _safe_print(f"\n  Workspace: {Path.cwd()}\n")
+            continue
+
+        if name in {"/cd", "cd"}:
+            if not tail:
+                _safe_print("Usage: /cd PATH")
+                continue
+            try:
+                destination = Path(tail.strip('\"\'')).expanduser()
+                if not destination.is_dir():
+                    _safe_print(f"Not a directory: {destination}")
+                    continue
+                os.chdir(destination)
+                _safe_print(f"Workspace: {Path.cwd()}")
+            except OSError as error:
+                _safe_print(f"Cannot change workspace: {error}")
+            continue
+
+        # Route shell commands through the existing CLI parser and scanner.
+        # shlex in non-POSIX mode preserves Windows backslashes in paths.
+        if name in {"/scan", "scan", "/doctor", "doctor", "/baseline", "baseline"}:
+            if name in {"/scan", "scan"} and not tail:
+                _interactive_launch(confirm=False)
+                continue
+            try:
+                args = [part.strip('\"\'') for part in shlex.split(tail, posix=False)]
+            except ValueError as error:
+                _safe_print(f"Invalid command arguments: {error}")
+                continue
+            try:
+                main([name.lstrip("/"), *args], _show_banner=False)
+            except SystemExit as error:
+                # argparse raises SystemExit for --help and invalid syntax;
+                # returning to the shell should not terminate this session.
+                if error.code not in (0, None):
+                    _safe_print("Command failed. Type /help for examples.")
+            continue
+
+        _safe_print(f"Unknown command: {name}. Type /help for commands.")
+
+
 def main(
     argv: list[str] | None = None,
     *,
@@ -1462,23 +1556,13 @@ def main(
     if not actual_argv and sys.stdin.isatty() and sys.stdout.isatty() and sys.stderr.isatty():
         if _show_banner:
             show_banner()
-        return _interactive_launch()
+        return _interactive_shell()
 
     parser = _parser()
     args = parser.parse_args(actual_argv)
     if args.command is None:
         parser.print_help()
         return 0
-    if args.command == "inspect":
-        try:
-            dna = inspect_repository(args.target)
-            _safe_print(
-                json.dumps({**dna, "component_graph": build_component_graph(dna)}, indent=2)
-            )
-            return 0
-        except (OSError, ValueError) as error:
-            _safe_print(f"vigil-fuse: {error}", file=sys.stderr)
-            return 2
     if args.command == "doctor":
         try:
             config_path = args.config.expanduser() if args.config else None
