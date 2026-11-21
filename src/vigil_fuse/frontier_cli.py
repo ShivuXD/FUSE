@@ -6,6 +6,7 @@ import argparse
 import hashlib
 from pathlib import Path
 import sys
+from typing import TypedDict
 
 from .build_context import _read_bounded, _select_project_file
 from .digital_twin import synthesize_digital_twin
@@ -24,6 +25,40 @@ from .physical_reachability import ResourceBinding, correlate_physical_evidence
 from .seu_analysis import MAX_SEU_BYTES, inspect_critical_state
 from .svd import MAX_SVD_BYTES, parse_svd
 from .text_safety import safe_terminal_text
+
+
+class FrontierHint(TypedDict):
+    name: str
+    evidence: list[str]
+
+
+def frontier_hints(
+    samples: list[str], unsupported: dict[str, int], hardware: dict[str, int],
+    *, has_bom: bool, has_netlist: bool,
+) -> list[FrontierHint]:
+    """Use bounded discovery metadata only; absence is not a negative conclusion."""
+    suffixes = {Path(path).suffix.casefold() for path in samples}
+    names = {Path(path).name.casefold() for path in samples}
+    dts = bool(suffixes & {".dts", ".dtsi"}) or bool(
+        unsupported.get(".dts", 0) or unsupported.get(".dtsi", 0)
+    )
+    svd = ".svd" in suffixes or bool(unsupported.get(".svd", 0))
+    netlist = has_netlist or bool(hardware.get("netlist", 0))
+    bom = has_bom or bool(hardware.get("bill-of-materials", 0))
+    hints: list[FrontierHint] = []
+    if dts and netlist and suffixes & {".c", ".cc", ".cpp"}:
+        hints.append({"name": "physical-reachability", "evidence": [
+            "DTS, netlist and C-family source filenames observed; an explicit pin mapping is required"
+        ]})
+    if names & {"cfe_sb.h", "cfe_sb_api.h"}:
+        hints.append({"name": "flight-bus", "evidence": [
+            "cFE software-bus header filename observed; application assignments are required"
+        ]})
+    if svd and (netlist or bom):
+        hints.append({"name": "digital-twin", "evidence": [
+            "SVD and hardware input filenames observed; select the intended local SVD"
+        ]})
+    return hints
 
 
 def register_commands(commands: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:

@@ -61,3 +61,14 @@ def test_physical_command_records_evidenced_mapping_and_partial_status(tmp_path:
     assert result == 1 and payload["status"] == "PARTIAL"
     assert payload["evidence"]["connections"][0]["endpoint"] == "J1"
     assert len(payload["device_tree"]["sha256"]) == 64
+
+
+def test_plan_mentions_frontier_hints_without_running_commands(tmp_path: Path, capsys) -> None:
+    for name in ("board.dts", "board.net", "device.svd", "driver.c", "cfe_sb.h"):
+        (tmp_path / name).write_text("", encoding="utf-8")
+    assert main(["scan", str(tmp_path), "--plan", "--format", "json"]) == 0
+    plan = json.loads(capsys.readouterr().out)
+    assert plan["executed"] is False
+    assert {item["name"] for item in plan["frontier_hints"]} == {
+        "physical-reachability", "flight-bus", "digital-twin"
+    }

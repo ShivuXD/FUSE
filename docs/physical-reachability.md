@@ -47,3 +47,7 @@ vigil-fuse physical-reachability ./project --dts board.dts --netlist board.net \
 Input files must be inside the target. JSON includes the input hashes, input
 statuses and limitations. Exit code `1` means partial or unknown evidence; `2`
 means invalid input. No automatic finding-to-driver or pinctrl resolution occurs.
+
+`scan --plan` may report advisory command hints from bounded filename metadata.
+Selected-file samples are capped at 100, so absent hints do not establish that an
+input is missing. The ordinary scan does not run these commands.
