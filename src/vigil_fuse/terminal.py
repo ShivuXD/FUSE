@@ -6,23 +6,38 @@ import sys
 
 from . import __version__
 
+# Skew each row to the right toward the top to give the block-art letters
+# an italic appearance. This remains portable terminal text rather than
+# relying on ANSI italic, which most terminals do not apply to box glyphs.
 _UNICODE_MARK = (
-    "███████╗██╗   ██╗███████╗███████╗",
-    "██╔════╝██║   ██║██╔════╝██╔════╝",
-    "█████╗  ██║   ██║███████╗█████╗  ",
-    "██╔══╝  ██║   ██║╚════██║██╔══╝  ",
-    "██║     ╚██████╔╝███████║███████╗",
+    "     ███████╗██╗   ██╗███████╗███████╗",
+    "    ██╔════╝██║   ██║██╔════╝██╔════╝",
+    "   █████╗  ██║   ██║███████╗█████╗  ",
+    "  ██╔══╝  ██║   ██║╚════██║██╔══╝  ",
+    " ██║     ╚██████╔╝███████║███████╗",
     "╚═╝      ╚═════╝ ╚══════╝╚══════╝",
 )
 _ASCII_MARK = (
-    "FFFFFF   U   U   SSSSS   EEEEEE",
-    "F        U   U  S        E",
-    "FFFFF    U   U   SSSS    EEEEE",
-    "F        U   U      S    E",
+    "    FFFFFF   U   U   SSSSS   EEEEEE",
+    "   F        U   U  S        E",
+    "  FFFFF    U   U   SSSS    EEEEE",
+    " F        U   U      S    E",
     "F         UUU   SSSSS   EEEEEE",
 )
 _STOPS = ((220, 38, 38), (251, 113, 133), (167, 139, 250), (96, 165, 250), (55, 48, 255))
 _RESET = "\033[0m"
+
+
+def _letter_spaced_mark(mark: tuple[str, ...], gap: int) -> tuple[str, ...]:
+    """Add breathing room between F / U / S / E without changing the glyphs."""
+    result = []
+    for row, line in enumerate(mark):
+        skew = len(mark) - row - 1
+        glyphs = line[skew:]
+        # Fixed-width segments from the original 33-column FUSE block artwork.
+        letters = (glyphs[:8], glyphs[8:17], glyphs[17:25], glyphs[25:])
+        result.append(" " * skew + (" " * gap).join(letters))
+    return tuple(result)
 
 
 def supports_color() -> bool:
@@ -85,6 +100,11 @@ def show_banner() -> None:
         mark = _ASCII_MARK
         unicode_ok = False
 
+    # Keep the original italic pixel font, but separate the four letters.
+    # On narrower terminals, use a one-cell gap so the logo still fits.
+    if unicode_ok:
+        mark = _letter_spaced_mark(mark, gap=2 if columns >= 50 else 1)
+
     color = supports_color()
     if columns < 40:
         lines = [
@@ -119,11 +139,10 @@ def show_banner() -> None:
 
     lines = [""]
     lines.append(_paint(top_left + rule * inner + top_right, frame_color, color))
-    lines.append(frame("FUSE  /  VIGIL", tint="#A78BFA"))
     lines.append(frame())
 
     logo_width = max(map(len, mark))
-    if columns >= logo_width + 8:
+    if columns >= logo_width + 6:
         for art_line in mark:
             # Render logo without truncating or wrapping inside the frame.
             left = (inner - logo_width - 2) // 2
