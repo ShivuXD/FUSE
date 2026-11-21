@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, fields, is_dataclass
-import json
+from dataclasses import dataclass
 
+from .json_limits import bounded_json
 from .model import HardwareBOMInventory
 from .svd import MAX_SVD_PERIPHERALS, MAX_SVD_TEXT_CHARS, PeripheralModel, SvdResult
 
@@ -26,21 +26,7 @@ class DigitalTwinDescription:
 
     def to_json(self) -> str:
         """Serialize with a hard output bound; no executable adapter is produced."""
-        class Encoder(json.JSONEncoder):
-            def default(self, value: object) -> object:
-                if is_dataclass(value) and not isinstance(value, type):
-                    return {field.name: getattr(value, field.name) for field in fields(value)}
-                return super().default(value)
-
-        encoder = Encoder(ensure_ascii=True, sort_keys=True, separators=(",", ":"))
-        chunks: list[str] = []
-        size = 0
-        for chunk in encoder.iterencode(self):
-            size += len(chunk)
-            if size + 1 > MAX_TWIN_JSON_BYTES:
-                raise ValueError("Digital-twin JSON size limit exceeded")
-            chunks.append(chunk)
-        return "".join(chunks) + "\n"
+        return bounded_json(self, MAX_TWIN_JSON_BYTES)
 
 
 def synthesize_digital_twin(

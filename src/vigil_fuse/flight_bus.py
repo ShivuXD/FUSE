@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
-import json
 import re
 from typing import Mapping
 
 from .c_source import mask_c
+from .json_limits import bounded_json
 
 MAX_BUS_FILES = 512
 MAX_BUS_FILE_BYTES = 2 * 1024 * 1024
@@ -18,6 +18,7 @@ MAX_BUS_ARGUMENT_CHARS = 4096
 MAX_BUS_CALL_DEPTH = 64
 MAX_BUS_GRAPH_EDGES = 20_000
 MAX_BUS_GRAPH_NODES = 30_000
+MAX_BUS_GRAPH_JSON_BYTES = 4 * 1024 * 1024
 _CALL = re.compile(
     r"\b(CFE_SB_CreatePipe|CFE_SB_SubscribeEx|CFE_SB_Subscribe|"
     r"CFE_SB_TransmitMsg|CFE_SB_TransmitBuffer|CFE_MSG_SetMsgId)\s*\("
@@ -64,9 +65,7 @@ class BusGraph:
     limitations: tuple[str, ...]
 
     def to_json(self) -> str:
-        from dataclasses import asdict
-
-        return json.dumps(asdict(self), ensure_ascii=True, sort_keys=True, indent=2) + "\n"
+        return bounded_json(self, MAX_BUS_GRAPH_JSON_BYTES, indent=2)
 
 
 def extract_bus_calls(files: Mapping[str, bytes]) -> BusCalls:

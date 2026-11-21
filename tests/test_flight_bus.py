@@ -1,3 +1,5 @@
+import pytest
+
 from vigil_fuse.flight_bus import MAX_BUS_FILE_BYTES, build_bus_graph, extract_bus_calls
 
 
@@ -51,3 +53,11 @@ def test_graph_uses_explicit_application_and_does_not_guess_transmit_message_id(
     )
     assert graph.to_json() == build_bus_graph(calls, {"app.c": "Payload"}).to_json()
     assert not build_bus_graph(calls, {}).edges
+
+
+def test_graph_json_output_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
+    graph = build_bus_graph(extract_bus_calls({"a.c": b'CFE_SB_Subscribe(MID, pipe);'}),
+                            {"a.c": "app"})
+    monkeypatch.setattr("vigil_fuse.flight_bus.MAX_BUS_GRAPH_JSON_BYTES", 100)
+    with pytest.raises(ValueError, match="size limit"):
+        graph.to_json()
