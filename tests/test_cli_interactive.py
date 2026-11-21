@@ -95,7 +95,7 @@ class InteractiveTests(unittest.TestCase):
             with redirect_stdout(StringIO()) as output, redirect_stderr(StringIO()):
                 session.execute("/scan", main)
             text = output.getvalue()
-            self.assertIn("Scanning project files", text)
+            self.assertIn("Reconnoitering project files", text)
             self.assertIn("1 findings to review", text)
             self.assertIn(str(target / ".fuse-results" / "findings.txt"), text)
             self.assertNotIn("Potential impact:", text)

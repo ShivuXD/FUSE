@@ -48,6 +48,37 @@ COMMANDS = (
 )
 REGISTRY = {command.name: command for command in COMMANDS}
 
+_SCAN_THOUGHTS = (
+    "Reconnoitering",
+    "Snooping",
+    "Enumerating",
+    "Poking",
+    "Scrutinizing",
+    "Sideeyeing",
+    "Sifting",
+    "Judging",
+    "Parsing",
+    "Snitching",
+    "Fingerprinting",
+    "Roasting",
+    "Dissecting",
+    "Overthinking",
+    "Correlating",
+    "Grilling",
+    "Auditing",
+    "Hexorcising",
+    "Synthesizing",
+    "Panicking",
+    "Asking the bits what they saw",
+    "Giving config files the side-eye",
+    "Separating risky from just weird",
+    "Reading the firmware tea leaves",
+    "Checking the usual hiding spots",
+    "Interrogating suspicious strings",
+    "Counting findings, not vibes",
+    "Politely asking code to explain itself",
+)
+
 
 def parse_input(line: str) -> list[str]:
     """Split quotes without interpreting Windows backslashes as escapes."""
@@ -103,7 +134,7 @@ def _print(value: object = "") -> None:
 
 
 class ScanProgress:
-    """Animate a single truthful activity while the native scan is running."""
+    """Animate playful status copy while scan analysis runs."""
 
     def __init__(self, optional: bool = False) -> None:
         self.optional = optional
@@ -118,16 +149,16 @@ class ScanProgress:
             _print(
                 "Running requested optional analysis..."
                 if self.optional
-                else "Scanning project files and checking security rules..."
+                else "Reconnoitering project files and checking security rules..."
             )
         return self
 
     def _animate(self) -> None:
         frames = "|/-\\"
         messages = (
-            ("Running requested optional analysis", "Gathering analyzer evidence")
+            ("Consulting optional tools", "Seeing what the extras found", "Waiting on the helpers")
             if self.optional
-            else ("Inspecting project files", "Checking security rules", "Gathering scan evidence")
+            else _SCAN_THOUGHTS
         )
         tick = 0
         while not self.stop.is_set():
