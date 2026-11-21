@@ -166,7 +166,7 @@ class InteractiveTests(unittest.TestCase):
             patch("vigil_fuse.cli.sys.stdout", TTYBuffer()),
             patch("vigil_fuse.cli.sys.stderr", TTYBuffer()),
             patch("vigil_fuse.cli.show_banner") as banner,
-            patch("vigil_fuse.cli._interactive_launch", return_value=0) as launch,
+            patch("vigil_fuse.cli._interactive_shell", return_value=0) as launch,
         ):
             self.assertEqual(main([]), 0)
             banner.assert_called_once_with()

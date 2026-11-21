@@ -9,7 +9,7 @@ import unittest
 from unittest.mock import patch
 
 from vigil_fuse.cli import main
-from vigil_fuse.terminal import show_banner
+from vigil_fuse.terminal import read_command, show_banner
 from vigil_fuse.text_safety import safe_terminal_text
 
 
@@ -43,6 +43,11 @@ class TerminalBannerTests(unittest.TestCase):
         ):
             show_banner()
         return output.getvalue()
+
+    def test_read_command_uses_shell_prompt(self):
+        with patch("builtins.input", return_value="/scan") as prompt:
+            self.assertEqual("/scan", read_command())
+        prompt.assert_called_once_with("fuse > ")
 
     def test_unicode_color_identity(self):
         banner = self.render()

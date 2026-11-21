@@ -145,6 +145,39 @@ class ScanProgress:
             sys.stdout.flush()
 
 
+def present_scan_result(result: ScanResult, output: Path | None) -> None:
+    incomplete = (
+        not result.analysis_performed
+        or not result.discovery_complete
+        or bool(result.files_skipped or result.limits_reached)
+        or any(
+            item.status in {"partial", "failed", "timeout", "unavailable", "incompatible"}
+            for item in result.analyzers
+        )
+    )
+    _print("\nScan finished" + (" - review incomplete coverage" if incomplete else ""))
+    _print(f"  {result.files_scanned} files checked, {len(result.findings)} findings to review")
+    if result.findings:
+        counts = {
+            level: sum(f.severity == level for f in result.findings)
+            for level in ("critical", "high", "medium", "low", "info")
+        }
+        _print(
+            "  Severity: "
+            + ", ".join(f"{count} {level}" for level, count in counts.items() if count)
+        )
+    _print("  Findings are security signals, not confirmed exploits. Use /findings to review them.")
+    if incomplete:
+        _print("  Some analysis was incomplete. Check the report coverage section for details.")
+    if output is not None:
+        if output.is_dir():
+            _print("  Reports saved:")
+            for name in ("findings.txt", "findings.json", "findings.sarif"):
+                _print(f"    {output / name}")
+        else:
+            _print(f"  Report saved: {output}")
+
+
 @dataclass
 class Session:
     target: Path
@@ -157,38 +190,7 @@ class Session:
     def save_result(self, result: ScanResult, output: Path | None) -> None:
         self.result = result
         self.output = output
-        incomplete = (
-            not result.analysis_performed
-            or not result.discovery_complete
-            or bool(result.files_skipped or result.limits_reached)
-            or any(
-                item.status in {"partial", "failed", "timeout", "unavailable", "incompatible"}
-                for item in result.analyzers
-            )
-        )
-        _print("\nScan finished" + (" - review incomplete coverage" if incomplete else ""))
-        _print(f"  {result.files_scanned} files checked, {len(result.findings)} findings to review")
-        if result.findings:
-            counts = {
-                level: sum(f.severity == level for f in result.findings)
-                for level in ("critical", "high", "medium", "low", "info")
-            }
-            _print(
-                "  Severity: "
-                + ", ".join(f"{count} {level}" for level, count in counts.items() if count)
-            )
-        _print(
-            "  Findings are security signals, not confirmed exploits. Use /findings to review them."
-        )
-        if incomplete:
-            _print("  Some analysis was incomplete. Check the report coverage section for details.")
-        if output is not None:
-            if output.is_dir():
-                _print("  Reports saved:")
-                for name in ("findings.txt", "findings.json", "findings.sarif"):
-                    _print(f"    {output / name}")
-            else:
-                _print(f"  Report saved: {output}")
+        present_scan_result(result, output)
 
     def footer(self, width: int) -> str:
         name = safe_terminal_text(self.target.name or str(self.target))

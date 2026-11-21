@@ -156,3 +156,8 @@ def show_banner() -> None:
         ]
     )
     print("\n".join(lines), file=sys.stderr)
+
+
+def read_command() -> str:
+    """Read one command in the interactive FUSE shell."""
+    return input("fuse > ")
