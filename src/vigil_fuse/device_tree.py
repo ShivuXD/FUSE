@@ -37,10 +37,12 @@ def parse_device_tree(data: bytes) -> DeviceTreeResult:
     except UnicodeDecodeError:
         return DeviceTreeResult("invalid", limitations=("DTS is not UTF-8",))
 
-    preprocessing = bool(re.search(
-        r"(?m)^[ \t]*#[ \t]*(?:include|define|if|ifdef|ifndef|elif|else|endif|undef)\b",
-        text,
-    ))
+    preprocessing = bool(
+        re.search(
+            r"(?m)^[ \t]*#[ \t]*(?:include|define|if|ifdef|ifndef|elif|else|endif|undef)\b",
+            text,
+        )
+    )
     # Preprocessor directives are not DTS properties and cannot be expanded safely.
     text = re.sub(
         r"(?m)^[ \t]*#[ \t]*(?:include|define|if|ifdef|ifndef|elif|else|endif|undef)\b[^\n]*",

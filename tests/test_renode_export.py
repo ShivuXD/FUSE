@@ -5,10 +5,10 @@ from vigil_fuse.renode_export import export_renode
 from vigil_fuse.svd import parse_svd
 
 
-SVD = b'''<device><name>Chip</name><size>32</size><resetMask>0xffffffff</resetMask>
+SVD = b"""<device><name>Chip</name><size>32</size><resetMask>0xffffffff</resetMask>
 <peripherals><peripheral><name>UART2</name><baseAddress>0x40004400</baseAddress>
 <registers><register><name>STATUS</name><addressOffset>0</addressOffset>
-<resetValue>0xc0</resetValue></register></registers></peripheral></peripherals></device>'''
+<resetValue>0xc0</resetValue></register></registers></peripheral></peripherals></device>"""
 
 
 def test_renode_description_is_explicitly_synthetic() -> None:
@@ -25,7 +25,9 @@ def test_renode_refuses_unknown_resets_or_unmatched_overrides() -> None:
     twin = synthesize_digital_twin(parse_svd(SVD, "local.svd"))
     with pytest.raises(ValueError):
         export_renode(twin, {"UART2": 0x100}, {("UART2", "OTHER"): 1})
-    incomplete = synthesize_digital_twin(parse_svd(SVD.replace(b'<resetMask>0xffffffff</resetMask>', b''), "x"))
+    incomplete = synthesize_digital_twin(
+        parse_svd(SVD.replace(b"<resetMask>0xffffffff</resetMask>", b""), "x")
+    )
     with pytest.raises(ValueError, match="fully known resets"):
         export_renode(incomplete, {"UART2": 0x100})
     with pytest.raises(ValueError):

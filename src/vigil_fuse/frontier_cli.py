@@ -40,8 +40,12 @@ class FrontierHint(TypedDict):
 
 
 def frontier_hints(
-    samples: list[str], unsupported: dict[str, int], hardware: dict[str, int],
-    *, has_bom: bool, has_netlist: bool,
+    samples: list[str],
+    unsupported: dict[str, int],
+    hardware: dict[str, int],
+    *,
+    has_bom: bool,
+    has_netlist: bool,
 ) -> list[FrontierHint]:
     """Use bounded discovery metadata only; absence is not a negative conclusion."""
     suffixes = {Path(path).suffix.casefold() for path in samples}
@@ -54,17 +58,32 @@ def frontier_hints(
     bom = has_bom or bool(hardware.get("bill-of-materials", 0))
     hints: list[FrontierHint] = []
     if dts and netlist and suffixes & {".c", ".cc", ".cpp"}:
-        hints.append({"name": "physical-reachability", "evidence": [
-            "DTS, netlist and C-family source filenames observed; an explicit pin mapping is required"
-        ]})
+        hints.append(
+            {
+                "name": "physical-reachability",
+                "evidence": [
+                    "DTS, netlist and C-family source filenames observed; an explicit pin mapping is required"
+                ],
+            }
+        )
     if names & {"cfe_sb.h", "cfe_sb_api.h"}:
-        hints.append({"name": "flight-bus", "evidence": [
-            "cFE software-bus header filename observed; application assignments are required"
-        ]})
+        hints.append(
+            {
+                "name": "flight-bus",
+                "evidence": [
+                    "cFE software-bus header filename observed; application assignments are required"
+                ],
+            }
+        )
     if svd and (netlist or bom):
-        hints.append({"name": "digital-twin", "evidence": [
-            "SVD and hardware input filenames observed; select the intended local SVD"
-        ]})
+        hints.append(
+            {
+                "name": "digital-twin",
+                "evidence": [
+                    "SVD and hardware input filenames observed; select the intended local SVD"
+                ],
+            }
+        )
     return hints
 
 
@@ -72,17 +91,34 @@ def register_commands(commands: argparse._SubParsersAction[argparse.ArgumentPars
     twin = commands.add_parser("digital-twin", help="describe selected local SVD peripherals")
     twin.add_argument("target", type=Path, help="root containing the selected inputs")
     twin.add_argument("--svd", required=True, help="local CMSIS-SVD file inside target")
-    twin.add_argument("--peripheral", action="append", default=[], help="select a peripheral by name")
+    twin.add_argument(
+        "--peripheral", action="append", default=[], help="select a peripheral by name"
+    )
     twin.add_argument("--hardware-bom", help="optional CSV or TSV BOM inside target")
     twin.add_argument("--format", choices=("json", "renode"), default="json")
-    twin.add_argument("--region", action="append", default=[], metavar="PERIPHERAL=BYTES",
-                      help="explicit Renode region size; repeat per selected peripheral")
-    twin.add_argument("--ready-bit", action="append", default=[], metavar="PERIPHERAL.REGISTER=MASK",
-                      help="explicit synthetic bits set on each Renode read")
+    twin.add_argument(
+        "--region",
+        action="append",
+        default=[],
+        metavar="PERIPHERAL=BYTES",
+        help="explicit Renode region size; repeat per selected peripheral",
+    )
+    twin.add_argument(
+        "--ready-bit",
+        action="append",
+        default=[],
+        metavar="PERIPHERAL.REGISTER=MASK",
+        help="explicit synthetic bits set on each Renode read",
+    )
     bus = commands.add_parser("flight-bus", help="extract partial cFE bus evidence")
     bus.add_argument("target", type=Path, help="root containing selected C source files")
-    bus.add_argument("--source", action="append", required=True, metavar="APP=PATH",
-                     help="assign a local C file to an application; repeat as needed")
+    bus.add_argument(
+        "--source",
+        action="append",
+        required=True,
+        metavar="APP=PATH",
+        help="assign a local C file to an application; repeat as needed",
+    )
     bus.add_argument("--policy", help="optional local TOML flight policy inside target")
     seu = commands.add_parser("seu", help="observe selected resilience indicators")
     seu.add_argument("target", type=Path, help="root containing the selected C file")
@@ -97,8 +133,12 @@ def register_commands(commands: argparse._SubParsersAction[argparse.ArgumentPars
     physical.add_argument("--compatible", help="exact literal device-tree compatible string")
     physical.add_argument("--mmio", help="literal untranslated device-tree bus address")
     physical.add_argument("--component", required=True, help="MCU component reference")
-    physical.add_argument("--pin", action="append", required=True, help="mapped MCU pin; repeatable")
-    physical.add_argument("--mapping-evidence", required=True, help="source of the supplied pin mapping")
+    physical.add_argument(
+        "--pin", action="append", required=True, help="mapped MCU pin; repeatable"
+    )
+    physical.add_argument(
+        "--mapping-evidence", required=True, help="source of the supplied pin mapping"
+    )
 
 
 def run_command(args: argparse.Namespace) -> int:
@@ -116,22 +156,42 @@ def run_command(args: argparse.Namespace) -> int:
             node_path = args.node
             if node_path is None:
                 address = int(args.mmio, 0) if args.mmio is not None else None
-                candidates = find_resource_candidates(tree, compatible=args.compatible, mmio=address)
+                candidates = find_resource_candidates(
+                    tree, compatible=args.compatible, mmio=address
+                )
                 if candidates.status == "PARTIAL" and len(candidates.node_paths) == 1:
                     node_path = candidates.node_paths[0]
             evidence = None
             if node_path is not None:
-                binding = ResourceBinding(args.finding, args.resource, node_path, args.component,
-                                          tuple(args.pin), args.mapping_evidence)
+                binding = ResourceBinding(
+                    args.finding,
+                    args.resource,
+                    node_path,
+                    args.component,
+                    tuple(args.pin),
+                    args.mapping_evidence,
+                )
                 evidence = correlate_physical_evidence(binding, tree, topology)
             payload = {
                 "status": evidence.physical_status if evidence is not None else "UNKNOWN",
-                "device_tree": {"path": display, "sha256": hashlib.sha256(data).hexdigest(),
-                                "status": tree.status, "limitations": tree.limitations},
-                "netlist": {"path": topology.path, "sha256": topology.sha256,
-                            "status": topology.status, "limitations": topology.limitations},
-                "requested_resource": {"finding_id": args.finding, "resource_id": args.resource,
-                                       "compatible": args.compatible, "mmio": args.mmio},
+                "device_tree": {
+                    "path": display,
+                    "sha256": hashlib.sha256(data).hexdigest(),
+                    "status": tree.status,
+                    "limitations": tree.limitations,
+                },
+                "netlist": {
+                    "path": topology.path,
+                    "sha256": topology.sha256,
+                    "status": topology.status,
+                    "limitations": topology.limitations,
+                },
+                "requested_resource": {
+                    "finding_id": args.finding,
+                    "resource_id": args.resource,
+                    "compatible": args.compatible,
+                    "mmio": args.mmio,
+                },
                 "resource_candidates": candidates,
                 "evidence": evidence,
             }
@@ -158,7 +218,9 @@ def run_command(args: argparse.Namespace) -> int:
                 applications[display] = app
             graph = build_bus_graph(extract_bus_calls(files), applications)
             if args.policy:
-                policy_path, policy_display = _select_project_file(args.target, args.policy, "--policy")
+                policy_path, policy_display = _select_project_file(
+                    args.target, args.policy, "--policy"
+                )
                 policy_data = _read_bounded(policy_path, MAX_POLICY_BYTES, "Flight policy")
                 graph = apply_bus_policy(graph, parse_bus_policy(policy_data, policy_display))
             sys.stdout.write(graph.to_json())
@@ -196,7 +258,9 @@ def run_command(args: argparse.Namespace) -> int:
                 peripheral, dot, register = name.rpartition(".")
                 key = (peripheral, register)
                 if not separator or not dot or not peripheral or not register or key in ready:
-                    raise ValueError("Each --ready-bit must uniquely specify PERIPHERAL.REGISTER=MASK")
+                    raise ValueError(
+                        "Each --ready-bit must uniquely specify PERIPHERAL.REGISTER=MASK"
+                    )
                 ready[key] = int(raw_bits, 0)
             exported = export_renode(twin, regions, ready)
             platform = "".join(f"# {item}\n" for item in exported.limitations) + exported.platform

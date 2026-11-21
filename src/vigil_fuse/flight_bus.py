@@ -176,7 +176,9 @@ def build_bus_graph(extraction: BusCalls, applications: Mapping[str, str]) -> Bu
     nodes: dict[str, BusNode] = {}
     edges: list[BusEdge] = []
     limitations = set(extraction.limitations)
-    limitations.add("Application ownership is supplied by the caller and not independently verified.")
+    limitations.add(
+        "Application ownership is supplied by the caller and not independently verified."
+    )
     limitations.add("Message expressions are symbolic; matching names do not prove matching IDs.")
     limitations.add("Transmit message IDs and execution order are not resolved by data flow.")
 
@@ -201,8 +203,10 @@ def build_bus_graph(extraction: BusCalls, applications: Mapping[str, str]) -> Bu
             break
         app = node("flight_application", application)
         args = call.arguments
-        if call.api == "CFE_SB_CreatePipe" and args and re.fullmatch(
-            r"&\s*[A-Za-z_]\w*(?:(?:\.|->)[A-Za-z_]\w*)*", args[0]
+        if (
+            call.api == "CFE_SB_CreatePipe"
+            and args
+            and re.fullmatch(r"&\s*[A-Za-z_]\w*(?:(?:\.|->)[A-Za-z_]\w*)*", args[0])
         ):
             pipe = node("software_bus_pipe", re.sub(r"\s+", "", args[0])[1:], application)
             edges.append(BusEdge(app, "creates", pipe, call.file, call.line, call.api))
@@ -212,24 +216,35 @@ def build_bus_graph(extraction: BusCalls, applications: Mapping[str, str]) -> Bu
                 limitations.add("At least one pipe expression could not be resolved symbolically.")
                 continue
             if not _MESSAGE_EXPRESSION.fullmatch(expression):
-                limitations.add("At least one message expression could not be resolved symbolically.")
+                limitations.add(
+                    "At least one message expression could not be resolved symbolically."
+                )
                 continue
             pipe = node("software_bus_pipe", pipe_expression, application)
             message = node("message_expression", re.sub(r"\s+", "", expression))
             edges.append(BusEdge(pipe, "subscribes_to", message, call.file, call.line, call.api))
             edges.append(BusEdge(app, "subscribes_to", message, call.file, call.line, call.api))
         elif call.api in {"CFE_SB_TransmitMsg", "CFE_SB_TransmitBuffer"} and args and args[0]:
-            expression = re.sub(r"\s+", "", args[0]) if _OBJECT_EXPRESSION.fullmatch(args[0]) else args[0]
+            expression = (
+                re.sub(r"\s+", "", args[0]) if _OBJECT_EXPRESSION.fullmatch(args[0]) else args[0]
+            )
             message = node("message_object_expression", expression, application)
             edges.append(BusEdge(app, "transmits", message, call.file, call.line, call.api))
         elif call.api == "CFE_MSG_SetMsgId" and len(args) >= 2:
-            if not _OBJECT_EXPRESSION.fullmatch(args[0]) or not _MESSAGE_EXPRESSION.fullmatch(args[1]):
-                limitations.add("At least one SetMsgId expression could not be resolved symbolically.")
+            if not _OBJECT_EXPRESSION.fullmatch(args[0]) or not _MESSAGE_EXPRESSION.fullmatch(
+                args[1]
+            ):
+                limitations.add(
+                    "At least one SetMsgId expression could not be resolved symbolically."
+                )
                 continue
-            message_object = node("message_object_expression", re.sub(r"\s+", "", args[0]), application)
+            message_object = node(
+                "message_object_expression", re.sub(r"\s+", "", args[0]), application
+            )
             message = node("message_expression", re.sub(r"\s+", "", args[1]))
-            edges.append(BusEdge(message_object, "sets_message_id", message,
-                                 call.file, call.line, call.api))
+            edges.append(
+                BusEdge(message_object, "sets_message_id", message, call.file, call.line, call.api)
+            )
         else:
             limitations.add("At least one recognized call did not produce a graph edge.")
     subscriptions: dict[tuple[str, str], list[BusEdge]] = {}
@@ -238,15 +253,37 @@ def build_bus_graph(extraction: BusCalls, applications: Mapping[str, str]) -> Bu
             subscriptions.setdefault((edge.source, edge.target), []).append(edge)
     observations = tuple(
         BusObservation(
-            "FUSE-FSW-001", "unknown", "low", "candidate", "not-validated", pipe, message,
-            nodes[pipe].label, nodes[message].label, len(occurrences),
+            "FUSE-FSW-001",
+            "unknown",
+            "low",
+            "candidate",
+            "not-validated",
+            pipe,
+            message,
+            nodes[pipe].label,
+            nodes[message].label,
+            len(occurrences),
             tuple(f"{edge.file}:{edge.line}: {edge.api}" for edge in occurrences[:10]),
         )
-        for (pipe, message), occurrences in sorted(subscriptions.items()) if len(occurrences) > 1
+        for (pipe, message), occurrences in sorted(subscriptions.items())
+        if len(occurrences) > 1
     )
     return BusGraph(
-        "partial", tuple(sorted(nodes.values(), key=lambda item: item.id)),
-        tuple(sorted(edges, key=lambda edge: (edge.file, edge.line, edge.api, edge.source,
-                                              edge.relation, edge.target))),
-        tuple(sorted(limitations)), observations,
+        "partial",
+        tuple(sorted(nodes.values(), key=lambda item: item.id)),
+        tuple(
+            sorted(
+                edges,
+                key=lambda edge: (
+                    edge.file,
+                    edge.line,
+                    edge.api,
+                    edge.source,
+                    edge.relation,
+                    edge.target,
+                ),
+            )
+        ),
+        tuple(sorted(limitations)),
+        observations,
     )
