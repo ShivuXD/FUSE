@@ -19,9 +19,10 @@ tests plus a fake-client policy rejection test are supplied. Separate Go CI is s
 The [upstream module](https://github.com/kubernetes-sigs/controller-runtime/blob/v0.25.3/go.mod)
 requires Go 1.26.0, matching the supplied go.mod.
 
-Go compilation, vet, formatting and dependency locking are pending because Go is not
-installed. No go.sum is fabricated. CI resolves dependencies before checking the module;
-generate/review/commit go.sum before deployment. The operator remains experimental.
+After explicit authorization, Go 1.27.4 and kind v0.33.0 were downloaded to an isolated
+local tools folder and verified against upstream SHA-256 checksums. No global PATH
+change was made. Go formatting, module resolution, four unit tests, vet and executable
+build passed. Generated go.mod/go.sum lock the dependencies. The operator remains experimental.
 
 ## Observed commands
 
@@ -31,7 +32,7 @@ Commands used the checkout's `.venv/Scripts/python` unless noted.
 | --- | --- |
 | `python -m pip install -e ".[dev]"` | Installed successfully |
 | Baseline `python -m pytest -q` | 386 passed, 8 failed, 1 skipped; 184 subtests passed |
-| Final `python -m pytest -q` | 403 passed, same 8 failed, 1 skipped; 184 subtests passed |
+| Core regression `python -m pytest -q` before opt-in test additions | 403 passed, same 8 failed, 1 skipped; 184 subtests passed |
 | `python -m pytest tests/test_execution_contract.py -q` | 17 passed |
 | `python -m ruff check src tests scripts` | Passed |
 | `python -m mypy src/vigil_fuse/execution_contract.py src/vigil_fuse/execution_worker.py src/vigil_fuse/execution.py` | Passed |
@@ -43,7 +44,13 @@ Commands used the checkout's `.venv/Scripts/python` unless noted.
 | Existing synthetic scan benchmark | Completed; see benchmark record |
 | `git diff --check` | Passed |
 | `python -m build --wheel` | Built successfully; execution modules and both schemas verified in wheel |
-| YAML parse of Kubernetes config manifests | Passed; API-server validation pending |
+| YAML parse and live CRD installation | Passed |
+| `go mod tidy`, `gofmt -w cmd internal` | Passed; lockfiles generated |
+| `go test -v ./...` | Four tests passed |
+| `go vet ./...`, `go build ./cmd/operator` | Passed; executable built |
+| `python -m pytest tests/test_execution_docker.py tests/test_execution_contract.py -q` with explicit image | 21 passed |
+| `python -m pytest tests/test_execution_kubernetes.py -q` with explicit cluster/binary/digest | Passed, including actual egress denial |
+| Namespace-scoped ServiceAccount authorization checks | Job creation allowed locally; Secrets and other namespace denied |
 
 The same eight tests failed before and after implementation: freeze repeatability,
 tracked/untracked documentation discovery, repository cohort RSS, separate provenance
@@ -53,16 +60,25 @@ errors in terminal.py. The earlier system-wide environment reported six terminal
 
 ## Integration limits
 
-No Kubernetes cluster was used and no image was built. kubectl client v1.34.1 exists,
-but Docker daemon, Go, kind and Rust were unavailable. No system software was installed.
-Go tests and live Job execution are unverified. NetworkPolicy enforcement, OOM, killed
-workers, deadlines, missing image and cluster/CRD failures need live validation. The Go
-unit tests describe bounded operational handling; they are not measured cluster results.
+An authorized disposable kind v0.33.0 / Kubernetes v1.37.0 cluster was created, tested and
+deleted. The image was built and run under Docker 28.5.1. Live tests verified Python plan
+handoff through the controller to a restricted Job, envelope validation, immutable spec
+rejection, Job owner cleanup and denied pod egress while an unselected baseline connected.
+RBAC checks used ServiceAccount impersonation; the live controller ran locally with the
+explicit test kubeconfig. In-cluster deployment packaging and authentication are unverified.
+
+Initial image-import attempts observed ImagePullBackOff. kind loaded the image by tag
+without its exact repository/digest alias. Inspecting containerd verified the original
+content digest and adding that matching alias resolved it without changing pinning.
+The first network diagnostic hit a server startup race; an explicit TCP readiness probe
+fixed the fixture. The full integration test then passed. Live cluster OOM, killed workers,
+deadline and inaccessible-cluster/CRD tests remain pending. Docker tests observed OOM exit
+137, invalid input exit 2, and rejection of malformed output despite a successful process exit.
 Captured envelopes reject invalid JSON, wrong schema, worker/plan mismatches and false
 security coverage in Python tests. Partial execution remains an operational limitation.
 
-The end-to-end cluster milestone is pending these prerequisites. Syft is intentionally
-deferred until the deterministic cluster probe succeeds. Evidence handoff currently uses
+The first deterministic cluster milestone passed. A real Syft worker remains a subsequent
+milestone and is not implemented in this foundation. Evidence handoff currently uses
 captured Job stdout and explicit Python validation. No automatic Kubernetes scan backend
 is advertised.
 

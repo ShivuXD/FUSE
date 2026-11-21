@@ -22,7 +22,8 @@ Pending, Running, Completed, Failed and Blocked are operational phases; Partial 
 reserved for future evidence-aware workers. A worker log is the current evidence handoff,
 so retrieve it before deleting the resource.
 
-Go compilation, fake-client reconciliation and live Kubernetes integration remain
-unverified in this environment. Go is absent, Docker daemon is unavailable and kind is
-absent. No cluster was created. Do not deploy until module resolution, Go checks and live
-tests succeed. See the operator README for exact prerequisites and commands.
+Go compilation, vet and four unit tests passed. A disposable kind v0.33.0 cluster with
+Kubernetes v1.37.0 passed the probe roundtrip, immutable-plan rejection, Job cleanup and
+actual egress-denial checks. Docker checks covered restricted execution, invalid input,
+malformed output and OOM. Live cluster OOM, deadlines and killed-worker tests remain
+pending. The operator remains experimental. See the operator README for opt-in tests.
