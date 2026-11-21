@@ -18,6 +18,7 @@ from .flight_bus import (
     build_bus_graph,
     extract_bus_calls,
 )
+from .flight_policy import MAX_POLICY_BYTES, apply_bus_policy, parse_bus_policy
 from .hardware_bom import inspect_hardware_bom
 from .hardware_netlist import read_netlist_topology
 from .json_limits import bounded_json
@@ -71,6 +72,7 @@ def register_commands(commands: argparse._SubParsersAction[argparse.ArgumentPars
     bus.add_argument("target", type=Path, help="root containing selected C source files")
     bus.add_argument("--source", action="append", required=True, metavar="APP=PATH",
                      help="assign a local C file to an application; repeat as needed")
+    bus.add_argument("--policy", help="optional local TOML flight policy inside target")
     seu = commands.add_parser("seu", help="observe selected resilience indicators")
     seu.add_argument("target", type=Path, help="root containing the selected C file")
     seu.add_argument("--source", required=True, help="local C source file inside target")
@@ -125,7 +127,12 @@ def run_command(args: argparse.Namespace) -> int:
                     raise ValueError("Software-bus total byte limit exceeded")
                 files[display] = data
                 applications[display] = app
-            sys.stdout.write(build_bus_graph(extract_bus_calls(files), applications).to_json())
+            graph = build_bus_graph(extract_bus_calls(files), applications)
+            if args.policy:
+                policy_path, policy_display = _select_project_file(args.target, args.policy, "--policy")
+                policy_data = _read_bounded(policy_path, MAX_POLICY_BYTES, "Flight policy")
+                graph = apply_bus_policy(graph, parse_bus_policy(policy_data, policy_display))
+            sys.stdout.write(graph.to_json())
             return 1
         if args.command == "seu":
             path, display = _select_project_file(args.target, args.source, "--source")

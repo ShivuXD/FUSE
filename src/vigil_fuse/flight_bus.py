@@ -73,12 +73,35 @@ class BusObservation:
 
 
 @dataclass(frozen=True)
+class BusComponent:
+    name: str
+    criticality: str | None
+    trust: str | None
+
+
+@dataclass(frozen=True)
+class BusPolicyObservation:
+    rule_id: str
+    severity: str
+    confidence: str
+    applicability: str
+    validation_status: str
+    application: str
+    message_expression: str
+    evidence: str
+
+
+@dataclass(frozen=True)
 class BusGraph:
     status: str
     nodes: tuple[BusNode, ...]
     edges: tuple[BusEdge, ...]
     limitations: tuple[str, ...]
     observations: tuple[BusObservation, ...] = ()
+    policy_source: str | None = None
+    policy_sha256: str | None = None
+    components: tuple[BusComponent, ...] = ()
+    policy_observations: tuple[BusPolicyObservation, ...] = ()
 
     def to_json(self) -> str:
         return bounded_json(self, MAX_BUS_GRAPH_JSON_BYTES, indent=2)

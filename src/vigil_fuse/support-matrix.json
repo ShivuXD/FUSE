@@ -191,8 +191,8 @@
       "input": "Explicit cFE C source files and application assignments",
       "profile": null,
       "label": "experimental",
-      "scope": "Extracts selected cFE call expressions, a partial symbolic bus graph and duplicate-subscription review observations.",
-      "limitations": ["No C preprocessing or application ownership inference", "No runtime message routing or privilege validation", "F Prime and security rules are not implemented"]
+      "scope": "Extracts a partial symbolic cFE bus graph with duplicate-subscription and optional configured-boundary review observations.",
+      "limitations": ["No C preprocessing or application ownership inference", "Policy uses exact symbolic matches only", "No runtime routing or privilege validation", "F Prime is not implemented"]
     },
     {
       "id": "flight.radiation-indicators",

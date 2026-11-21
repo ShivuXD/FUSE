@@ -35,6 +35,29 @@ Run `vigil-fuse flight-bus ./project --source PAYLOAD=src/payload.c`; repeat
 JSON is written to standard output. Exit code `1` means partial analysis; `2`
 means invalid input. The command does not build or execute source code.
 
+An optional `--policy flight.toml` supplies component metadata and symbolic
+subscription boundaries. Example:
+
+```toml
+[flight_software.components.PAYLOAD]
+criticality = "medium"
+trust = "low"
+
+[flight_software.components.ADCS]
+criticality = "critical"
+
+[flight_software.messages.ADCS_CMD_MID]
+allowed_subscribers = ["ADCS"]
+```
+
+Only explicitly listed message expressions are checked, using exact symbolic
+matching. An application absent from that message's configured allowlist produces
+a low-confidence, unvalidated review candidate with unknown severity. This does
+not establish a runtime subscription, privilege or exploitability. Criticality
+and trust remain supplied metadata and do not change severity. Policies are
+bounded to 256 KiB, 2,048 component/message entries and 10,000 list members; the
+graph records the policy path and SHA-256.
+
 The call interpretation is informed by NASA's [cFE Application Developers
 Guide](https://github.com/nasa/cFE/blob/dev/docs/cFE%20Application%20Developers%20Guide.md),
 which describes pipes, subscriptions and message transmission.

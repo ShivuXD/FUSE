@@ -72,3 +72,17 @@ def test_plan_mentions_frontier_hints_without_running_commands(tmp_path: Path, c
     assert {item["name"] for item in plan["frontier_hints"]} == {
         "physical-reachability", "flight-bus", "digital-twin"
     }
+
+
+def test_flight_bus_uses_explicit_policy(tmp_path: Path, capsys) -> None:
+    (tmp_path / "app.c").write_text("CFE_SB_Subscribe(CMD_MID, pipe);", encoding="utf-8")
+    (tmp_path / "flight.toml").write_text('''[flight_software.components.PAYLOAD]
+criticality = "medium"
+[flight_software.messages.CMD_MID]
+allowed_subscribers = ["ADCS"]
+''', encoding="utf-8")
+    assert main(["flight-bus", str(tmp_path), "--source", "PAYLOAD=app.c", "--policy",
+                 "flight.toml"]) == 1
+    graph = json.loads(capsys.readouterr().out)
+    assert graph["policy_source"] == "flight.toml"
+    assert graph["policy_observations"][0]["application"] == "PAYLOAD"
