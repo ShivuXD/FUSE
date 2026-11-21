@@ -1,5 +1,6 @@
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -130,8 +131,26 @@ class InteractiveTests(unittest.TestCase):
             patch("vigil_fuse.cliui.sys.stdout", TTYBuffer()) as output,
             patch.dict("os.environ", {"TERM": "xterm"}),
         ):
+            if os.name == "nt":
+                with patch("vigil_fuse.cliui.os.system", return_value=0) as clear:
+                    session.execute("/clear", lambda *a, **k: 0)
+                clear.assert_called_once_with("cls")
+                self.assertEqual(output.getvalue(), "")
+            else:
+                session.execute("/clear", lambda *a, **k: 0)
+                self.assertIn("\x1b[2J", output.getvalue())
+
+    def test_windows_clear_works_without_ansi_term_support(self) -> None:
+        session = Session(Path.cwd())
+        with (
+            patch("vigil_fuse.cliui.sys.stdout", TTYBuffer()) as output,
+            patch("vigil_fuse.cliui.os.name", "nt"),
+            patch("vigil_fuse.cliui.os.system", return_value=0) as clear,
+            patch.dict("os.environ", {"TERM": "dumb"}),
+        ):
             session.execute("/clear", lambda *a, **k: 0)
-            self.assertIn("\x1b[2J", output.getvalue())
+        clear.assert_called_once_with("cls")
+        self.assertEqual(output.getvalue(), "")
 
     def test_dispatch_restores_interrupt_handler_on_error(self) -> None:
         import signal

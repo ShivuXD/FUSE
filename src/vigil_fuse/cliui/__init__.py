@@ -293,8 +293,12 @@ class Session:
             elif name == "version":
                 _print(f"FUSE {__version__}")
             elif name == "clear":
-                if sys.stdout.isatty() and os.environ.get("TERM") != "dumb":
-                    print("\033[2J\033[H", end="", flush=True)
+                if sys.stdout.isatty() and (os.name == "nt" or os.environ.get("TERM") != "dumb"):
+                    if os.name == "nt":
+                        if os.system("cls") != 0:
+                            _print("Clear failed in this terminal.")
+                    else:
+                        print("\033[2J\033[H", end="", flush=True)
                 else:
                     _print("Clear is unavailable in this terminal.")
             elif name == "target":
