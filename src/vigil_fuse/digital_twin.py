@@ -44,10 +44,16 @@ def synthesize_digital_twin(
     available = {peripheral.name for peripheral in device.peripherals}
     if names - available:
         raise ValueError("At least one selected peripheral is absent from the SVD inventory")
-    peripherals = tuple(sorted(
-        (peripheral for peripheral in device.peripherals if not names or peripheral.name in names),
-        key=lambda peripheral: peripheral.name,
-    ))
+    peripherals = tuple(
+        sorted(
+            (
+                peripheral
+                for peripheral in device.peripherals
+                if not names or peripheral.name in names
+            ),
+            key=lambda peripheral: peripheral.name,
+        )
+    )
     limitations = list(svd.limitations)
     limitations.append("No synthetic or measured peripheral behavior has been generated.")
     candidates: tuple[str, ...] = ()
@@ -57,14 +63,26 @@ def synthesize_digital_twin(
         if bom.status not in {"imported", "partial"}:
             limitations.append("The supplied BOM is unavailable or invalid.")
         else:
-            candidates = tuple(sorted(
-                component.reference for component in bom.components
-                if component.name == device.name or component.part_number == device.name
-            ))
-            limitations.append("Exact BOM name matches are candidates, not verified device identity.")
+            candidates = tuple(
+                sorted(
+                    component.reference
+                    for component in bom.components
+                    if component.name == device.name or component.part_number == device.name
+                )
+            )
+            limitations.append(
+                "Exact BOM name matches are candidates, not verified device identity."
+            )
             limitations.extend(bom.limitations)
     return DigitalTwinDescription(
-        "partial", device.name, device.source, device.sha256, device.version,
-        bom.source_path if bom is not None else None, bom.sha256 if bom is not None else None,
-        candidates, peripherals, tuple(sorted(set(limitations))),
+        "partial",
+        device.name,
+        device.source,
+        device.sha256,
+        device.version,
+        bom.source_path if bom is not None else None,
+        bom.sha256 if bom is not None else None,
+        candidates,
+        peripherals,
+        tuple(sorted(set(limitations))),
     )

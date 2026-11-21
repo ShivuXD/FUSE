@@ -170,10 +170,12 @@ def parse_svd(data: bytes, source: str) -> SvdResult:
             default_size = _text(peripheral, "size") or _text(document, "size")
             default_reset = _text(peripheral, "resetValue") or _text(document, "resetValue")
             default_mask = _text(peripheral, "resetMask") or _text(document, "resetMask")
-            interrupts = tuple(sorted(
-                (_required_name(item), _required_number(item, "value"))
-                for item in peripheral.findall("interrupt")
-            ))
+            interrupts = tuple(
+                sorted(
+                    (_required_name(item), _required_number(item, "value"))
+                    for item in peripheral.findall("interrupt")
+                )
+            )
             registers_element = peripheral.find("registers")
             if registers_element is None:
                 limitations.add("At least one peripheral has no register section.")
@@ -227,19 +229,44 @@ def parse_svd(data: bytes, source: str) -> SvdResult:
                             limitations.add("Derived enumerated values were omitted.")
                             continue
                         for item in group.findall("enumeratedValue"):
-                            values.append(EnumeratedValue(_required_name(item),
-                                                          _number(_text(item, "value")),
-                                                          _text(group, "usage")))
-                    fields.append(FieldModel(field_name, bit_offset, bit_width,
-                                             _text(field, "access") or access, tuple(values)))
+                            values.append(
+                                EnumeratedValue(
+                                    _required_name(item),
+                                    _number(_text(item, "value")),
+                                    _text(group, "usage"),
+                                )
+                            )
+                    fields.append(
+                        FieldModel(
+                            field_name,
+                            bit_offset,
+                            bit_width,
+                            _text(field, "access") or access,
+                            tuple(values),
+                        )
+                    )
                 size_bits = _number(_text(register, "size") or default_size)
                 if size_bits == 0:
                     raise ValueError("SVD register size must be positive")
-                registers.append(RegisterModel(register_name, _required_number(register, "addressOffset"),
-                                               size_bits, access, reset, mask, tuple(fields)))
+                registers.append(
+                    RegisterModel(
+                        register_name,
+                        _required_number(register, "addressOffset"),
+                        size_bits,
+                        access,
+                        reset,
+                        mask,
+                        tuple(fields),
+                    )
+                )
             peripherals.append(PeripheralModel(peripheral_name, base, interrupts, tuple(registers)))
-        device = DeviceModel(name, _text(document, "version"), source,
-                             hashlib.sha256(data).hexdigest(), tuple(peripherals))
+        device = DeviceModel(
+            name,
+            _text(document, "version"),
+            source,
+            hashlib.sha256(data).hexdigest(),
+            tuple(peripherals),
+        )
         # shortcut: not all SVD constructs are interpreted, upgrade before complete models.
         limitations.add("SVD schema and all vendor-specific semantics are not fully validated.")
         return SvdResult("partial", device, tuple(sorted(limitations)))

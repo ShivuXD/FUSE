@@ -63,11 +63,16 @@ def parse_bus_policy(data: bytes, source: str) -> BusPolicy:
     members = 0
     for raw_expression, item in sorted(messages.items()):
         expression = _name(raw_expression)
-        if (not isinstance(item, dict) or not item
-                or set(item) - {"allowed_subscribers", "allowed_publishers"}):
+        if (
+            not isinstance(item, dict)
+            or not item
+            or set(item) - {"allowed_subscribers", "allowed_publishers"}
+        ):
             raise ValueError("Each message policy requires allowed subscribers or publishers")
-        for key, destination in (("allowed_subscribers", subscribers),
-                                 ("allowed_publishers", publishers)):
+        for key, destination in (
+            ("allowed_subscribers", subscribers),
+            ("allowed_publishers", publishers),
+        ):
             if key not in item:
                 continue
             allowed = item[key]
@@ -80,8 +85,13 @@ def parse_bus_policy(data: bytes, source: str) -> BusPolicy:
             if len(set(names)) != len(names):
                 raise ValueError(f"Duplicate member in {key}")
             destination.append((expression, names))
-    return BusPolicy(source, hashlib.sha256(data).hexdigest(), tuple(component_items),
-                     tuple(subscribers), tuple(publishers))
+    return BusPolicy(
+        source,
+        hashlib.sha256(data).hexdigest(),
+        tuple(component_items),
+        tuple(subscribers),
+        tuple(publishers),
+    )
 
 
 def apply_bus_policy(graph: BusGraph, policy: BusPolicy) -> BusGraph:
@@ -92,17 +102,30 @@ def apply_bus_policy(graph: BusGraph, policy: BusPolicy) -> BusGraph:
     observations: list[BusPolicyObservation] = []
     for edge in graph.edges:
         source, target = nodes[edge.source], nodes[edge.target]
-        if (edge.relation != "subscribes_to" or source.kind != "flight_application"
-                or target.kind != "message_expression" or target.label not in allowed):
+        if (
+            edge.relation != "subscribes_to"
+            or source.kind != "flight_application"
+            or target.kind != "message_expression"
+            or target.label not in allowed
+        ):
             continue
         if source.label not in allowed[target.label]:
-            observations.append(BusPolicyObservation(
-                "FUSE-FSW-002", "unknown", "low", "candidate", "not-validated",
-                source.label, target.label,
-                f"{edge.file}:{edge.line}: {edge.api}; application absent from configured allowlist",
-            ))
+            observations.append(
+                BusPolicyObservation(
+                    "FUSE-FSW-002",
+                    "unknown",
+                    "low",
+                    "candidate",
+                    "not-validated",
+                    source.label,
+                    target.label,
+                    f"{edge.file}:{edge.line}: {edge.api}; application absent from configured allowlist",
+                )
+            )
     limitations = set(graph.limitations)
-    limitations.add("Policy checks are exact symbolic comparisons, not verified runtime access control.")
+    limitations.add(
+        "Policy checks are exact symbolic comparisons, not verified runtime access control."
+    )
     assignments: dict[str, dict[str, str]] = {}
     for edge in graph.edges:
         if edge.relation == "sets_message_id" and nodes[edge.target].label in allowed_publishers:
@@ -118,17 +141,33 @@ def apply_bus_policy(graph: BusGraph, policy: BusPolicy) -> BusGraph:
             if checks > MAX_POLICY_RELATION_CHECKS:
                 break
             if nodes[edge.source].label not in allowed_publishers[message]:
-                observations.append(BusPolicyObservation(
-                    "FUSE-FSW-003", "unknown", "low", "candidate", "not-validated",
-                    nodes[edge.source].label, message,
-                    f"{assignment}; {edge.file}:{edge.line}: {edge.api}; "
-                    "application absent from configured publisher allowlist",
-                ))
+                observations.append(
+                    BusPolicyObservation(
+                        "FUSE-FSW-003",
+                        "unknown",
+                        "low",
+                        "candidate",
+                        "not-validated",
+                        nodes[edge.source].label,
+                        message,
+                        f"{assignment}; {edge.file}:{edge.line}: {edge.api}; "
+                        "application absent from configured publisher allowlist",
+                    )
+                )
         if checks > MAX_POLICY_RELATION_CHECKS:
-            limitations.add("Publisher relationship check limit reached; further checks were omitted.")
+            limitations.add(
+                "Publisher relationship check limit reached; further checks were omitted."
+            )
             break
     if allowed_publishers:
-        limitations.add("Publisher candidates use symbolic object associations without data-flow validation.")
-    return replace(graph, policy_source=policy.source, policy_sha256=policy.sha256,
-                   components=policy.components, policy_observations=tuple(observations),
-                   limitations=tuple(sorted(limitations)))
+        limitations.add(
+            "Publisher candidates use symbolic object associations without data-flow validation."
+        )
+    return replace(
+        graph,
+        policy_source=policy.source,
+        policy_sha256=policy.sha256,
+        components=policy.components,
+        policy_observations=tuple(observations),
+        limitations=tuple(sorted(limitations)),
+    )

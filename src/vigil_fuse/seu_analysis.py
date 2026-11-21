@@ -75,7 +75,9 @@ def inspect_critical_state(data: bytes) -> SeuResult:
                 ambiguous.add(name)
                 continue
             if len(declarations) >= MAX_SEU_STATES:
-                limitations.add("Critical-state limit reached; remaining declarations were omitted.")
+                limitations.add(
+                    "Critical-state limit reached; remaining declarations were omitted."
+                )
                 truncated = True
                 break
             declarations[name] = number
@@ -95,26 +97,36 @@ def inspect_critical_state(data: bytes) -> SeuResult:
             excerpt = safe_report_text(line.strip(), limit=200) or "source line"
             if re.search(
                 rf"\b\w*(?:crc|checksum|parity|ecc)\w*\s*\([^;]*\b{escaped}\b",
-                line, re.IGNORECASE,
+                line,
+                re.IGNORECASE,
             ):
                 indicators[name].add(f"line {line_number}: checksum/parity call: {excerpt}")
-            if re.search(r"\bif\s*\(", line) and re.search(
-                rf"\b{escaped}\s*(?:<|>|<=|>=)", line
-            ):
+            if re.search(r"\bif\s*\(", line) and re.search(rf"\b{escaped}\s*(?:<|>|<=|>=)", line):
                 indicators[name].add(f"line {line_number}: bound comparison: {excerpt}")
             redundant = r"[A-Za-z_]\w*(?:backup|copy|redundant)\w*"
             if re.search(r"\bif\s*\(", line) and re.search(
                 rf"(?:\b{escaped}\s*(?:==|!=)\s*{redundant}\b|"
-                rf"\b{redundant}\s*(?:==|!=)\s*{escaped}\b)", line, re.IGNORECASE
+                rf"\b{redundant}\s*(?:==|!=)\s*{escaped}\b)",
+                line,
+                re.IGNORECASE,
             ):
                 indicators[name].add(f"line {line_number}: redundant-state comparison: {excerpt}")
         if checks > MAX_SEU_CHECKS:
             break
     states = tuple(
-        CriticalState(name, line, "UNKNOWN" if name in ambiguous else
-                      "PROTECTION_OBSERVED" if indicators[name] else
-                      "PARTIAL" if truncated else "NO_PROTECTION_OBSERVED",
-                      "low", tuple(sorted(indicators[name])))
+        CriticalState(
+            name,
+            line,
+            "UNKNOWN"
+            if name in ambiguous
+            else "PROTECTION_OBSERVED"
+            if indicators[name]
+            else "PARTIAL"
+            if truncated
+            else "NO_PROTECTION_OBSERVED",
+            "low",
+            tuple(sorted(indicators[name])),
+        )
         for name, line in sorted(declarations.items(), key=lambda item: (item[1], item[0]))
     )
     return SeuResult("partial", states, tuple(sorted(limitations)))

@@ -5,7 +5,7 @@ import json
 from vigil_fuse.svd import MAX_SVD_BYTES, parse_svd
 
 
-VALID = b'''<device><name>Example</name><version>1</version>
+VALID = b"""<device><name>Example</name><version>1</version>
 <access>read-write</access><resetValue>0xC0</resetValue>
 <peripherals><peripheral><name>USART2</name><baseAddress>0x40004400</baseAddress>
 <interrupt><name>USART2_IRQ</name><value>38</value></interrupt>
@@ -13,7 +13,7 @@ VALID = b'''<device><name>Example</name><version>1</version>
 <fields><field><name>READY</name><bitOffset>7</bitOffset><bitWidth>1</bitWidth>
 <enumeratedValues><usage>read</usage><enumeratedValue><name>Ready</name>
 <value>1</value></enumeratedValue></enumeratedValues></field></fields>
-</register></registers></peripheral></peripherals></device>'''
+</register></registers></peripheral></peripherals></device>"""
 
 
 def test_svd_records_registers_fields_and_provenance() -> None:
@@ -28,19 +28,30 @@ def test_svd_records_registers_fields_and_provenance() -> None:
     assert (register.offset, register.reset_value, register.access) == (0, 0xC0, "read-write")
     assert (register.fields[0].bit_offset, register.fields[0].bit_width) == (7, 1)
     assert register.fields[0].enumerated_values[0].usage == "read"
-    assert json.dumps(asdict(result), sort_keys=True) == json.dumps(asdict(parse_svd(VALID, "board.svd")), sort_keys=True)
+    assert json.dumps(asdict(result), sort_keys=True) == json.dumps(
+        asdict(parse_svd(VALID, "board.svd")), sort_keys=True
+    )
 
 
 def test_svd_rejects_unsafe_invalid_and_duplicate_input() -> None:
-    assert parse_svd(b'<!DOCTYPE device [<!ENTITY x SYSTEM "file:///secret">]><device/>', "x").status == "invalid"
-    assert parse_svd(b'<device>', "x").status == "invalid"
-    assert parse_svd(b'x' * (MAX_SVD_BYTES + 1), "x").status == "invalid"
-    duplicate = VALID.replace(b'</peripherals>', b'<peripheral><name>USART2</name><baseAddress>0</baseAddress></peripheral></peripherals>')
+    assert (
+        parse_svd(b'<!DOCTYPE device [<!ENTITY x SYSTEM "file:///secret">]><device/>', "x").status
+        == "invalid"
+    )
+    assert parse_svd(b"<device>", "x").status == "invalid"
+    assert parse_svd(b"x" * (MAX_SVD_BYTES + 1), "x").status == "invalid"
+    duplicate = VALID.replace(
+        b"</peripherals>",
+        b"<peripheral><name>USART2</name><baseAddress>0</baseAddress></peripheral></peripherals>",
+    )
     assert parse_svd(duplicate, "x").status == "invalid"
 
 
 def test_unsupported_derived_peripheral_is_omitted_and_partial() -> None:
-    source = VALID.replace(b'</peripherals>', b'<peripheral derivedFrom="USART2"><name>USART3</name></peripheral></peripherals>')
+    source = VALID.replace(
+        b"</peripherals>",
+        b'<peripheral derivedFrom="USART2"><name>USART3</name></peripheral></peripherals>',
+    )
     result = parse_svd(source, "x")
     assert result.status == "partial"
     assert result.device is not None and len(result.device.peripherals) == 1

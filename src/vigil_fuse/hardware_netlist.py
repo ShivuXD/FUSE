@@ -111,8 +111,9 @@ def read_netlist_topology(root: Path, supplied: str | Path) -> NetlistTopology:
     components_section = document.find("components")
     nets_section = document.find("nets")
     if document.tag != "export":
-        return NetlistTopology("unsupported", display, digest,
-                               limitations=("XML root is not a KiCad export.",))
+        return NetlistTopology(
+            "unsupported", display, digest, limitations=("XML root is not a KiCad export.",)
+        )
     if components_section is None or nets_section is None:
         return NetlistTopology(
             "partial", display, digest, limitations=("Missing KiCad export sections.",)

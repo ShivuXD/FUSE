@@ -23,7 +23,11 @@ class SupportMatrixTests(unittest.TestCase):
 
     def test_frontier_capabilities_are_experimental_and_disclose_limits(self) -> None:
         capabilities = {item["id"]: item for item in support_matrix()["capabilities"]}
-        for name in ("cyber-physical.reachability", "flight.cfe-bus",
-                     "flight.radiation-indicators", "hardware.digital-twin"):
+        for name in (
+            "cyber-physical.reachability",
+            "flight.cfe-bus",
+            "flight.radiation-indicators",
+            "hardware.digital-twin",
+        ):
             self.assertEqual("experimental", capabilities[name]["label"])
             self.assertTrue(capabilities[name]["limitations"])
