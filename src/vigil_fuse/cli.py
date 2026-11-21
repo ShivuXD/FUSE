@@ -29,6 +29,7 @@ from .baseline import create_baseline, diff_baseline, suppress_finding, unsuppre
 from .build_context import inspect_compilation_database, inspect_platformio
 from .config import ScanConfig, load_config
 from .component_graph import build_component_graph
+from .analysis_router import plan_analysis
 from .ghidra_analyzer import (
     GHIDRA_DEFAULT_TIMEOUT_SECONDS,
     GHIDRA_MAXIMUM_INPUT_BYTES,
@@ -1473,7 +1474,14 @@ def main(
         try:
             dna = inspect_repository(args.target)
             _safe_print(
-                json.dumps({**dna, "component_graph": build_component_graph(dna)}, indent=2)
+                json.dumps(
+                    {
+                        **dna,
+                        "component_graph": build_component_graph(dna),
+                        "analysis_plan": plan_analysis(dna),
+                    },
+                    indent=2,
+                )
             )
             return 0
         except (OSError, ValueError) as error:
