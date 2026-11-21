@@ -16,7 +16,7 @@ Import `ShivuXD/fuse` from GitHub and use these project settings:
 
 Keep the root directory at the repository root so Vercel can read `vercel.json`. Vercel serves the files in the configured output directory.
 
-Vercel's `ignoreCommand` compares each commit with its parent and skips deployments when neither `site/` nor `vercel.json` changed. This avoids spending deployment attempts on Python package, test, documentation, and CI-only changes while ensuring site and deployment configuration changes still build.
+Vercel builds deployments without a repository-specific ignored-build command. This allows the first deployment to run even when the latest commit did not change the website.
 
 Preview locally from the repository root with:
 
