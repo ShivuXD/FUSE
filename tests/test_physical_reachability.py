@@ -4,7 +4,11 @@ import pytest
 
 from vigil_fuse.device_tree import parse_device_tree
 from vigil_fuse.hardware_netlist import read_netlist_topology
-from vigil_fuse.physical_reachability import ResourceBinding, correlate_physical_evidence
+from vigil_fuse.physical_reachability import (
+    ResourceBinding,
+    correlate_physical_evidence,
+    find_resource_candidates,
+)
 
 
 def test_explicit_binding_records_connector_without_claiming_exploitability(tmp_path: Path) -> None:
@@ -35,3 +39,21 @@ def test_missing_node_is_unknown_and_empty_mapping_is_rejected(tmp_path: Path) -
             ResourceBinding("FUSE-1", "UART2", "/missing", "U1", (), "board map"),
             tree, topology,
         )
+
+
+def test_exact_compatible_and_reg_cells_produce_partial_candidate() -> None:
+    tree = parse_device_tree(b'''/ { soc { #address-cells = <1>; #size-cells = <1>;
+      uart2: serial@40004400 { compatible = "vendor,uart", "vendor,serial";
+        reg = <0x40004400 0x400>; };
+      serial@5000 { compatible = "vendor,uart"; reg = <0x5000 0x100>; };
+    }; };''')
+    result = find_resource_candidates(tree, compatible="vendor,uart", mmio=0x40004400)
+    assert result.status == "PARTIAL"
+    assert result.node_paths == ("/soc/serial@40004400",)
+    assert find_resource_candidates(tree, compatible="vendor,uart").status == "UNKNOWN"
+    assert find_resource_candidates(tree, compatible="vendor,uart", mmio=0x9999).status == "UNKNOWN"
+
+
+def test_missing_address_cells_do_not_guess_reg_interpretation() -> None:
+    tree = parse_device_tree(b'/ { soc { serial@4000 { reg = <0x4000 0x100>; }; }; };')
+    assert not find_resource_candidates(tree, mmio=0x4000).node_paths

@@ -6,6 +6,13 @@ property values, including `compatible`, `reg`, interrupts, aliases and pinctrl
 references. Inputs are limited to 2 MiB, 10,000 nodes, 50,000 statements and 128
 levels. It does not run `dtc`, build tooling or target code.
 
+The internal `find_resource_candidates` helper can compare an exact literal
+`compatible` string and/or a literal `reg` address. Address matching requires
+explicit parent `#address-cells` and `#size-cells` and supports one or two address
+cells. It does not translate `ranges`; the address is a bus cell, not necessarily
+the CPU physical address. Missing cell metadata, macros and ambiguous paths do not
+produce a definitive match. A unique match remains partial.
+
 The parser does not resolve includes, preprocessor conditions or macros, overlays,
 phandles, address cells, pin encodings or board wiring. Consequently every
 otherwise successful result is `partial`: a literal property may be superseded or
