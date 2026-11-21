@@ -179,6 +179,38 @@
       "limitations": ["Signature and builder trust are not verified", "Does not validate build policy or provenance completeness"]
     },
     {
+      "id": "cyber-physical.reachability",
+      "input": "Explicit DTS, KiCad XML netlist and caller-provided pin mapping",
+      "profile": null,
+      "label": "experimental",
+      "scope": "Correlates explicit pin mappings to netlist connector candidates with partial device-tree evidence.",
+      "limitations": ["Does not resolve preprocessing or pinctrl", "Does not prove physical access or exploitability", "Requires an explicit finding and pin mapping"]
+    },
+    {
+      "id": "flight.cfe-bus",
+      "input": "Explicit cFE C source files and application assignments",
+      "profile": null,
+      "label": "experimental",
+      "scope": "Extracts selected cFE call expressions and emits a partial symbolic bus graph.",
+      "limitations": ["No C preprocessing or application ownership inference", "No runtime message routing or privilege validation", "F Prime and security rules are not implemented"]
+    },
+    {
+      "id": "flight.radiation-indicators",
+      "input": "Explicit C source file",
+      "profile": null,
+      "label": "experimental",
+      "scope": "Observes selected named flight-state declarations and same-line resilience indicators.",
+      "limitations": ["Partial static patterns do not prove radiation safety or absence of protection", "No cross-file or hardware analysis"]
+    },
+    {
+      "id": "hardware.digital-twin",
+      "input": "Explicit local CMSIS-SVD and optional CSV or TSV BOM",
+      "profile": null,
+      "label": "experimental",
+      "scope": "Builds a bounded partial peripheral description; an API can export constrained synthetic Renode mocks.",
+      "limitations": ["SVD derived entries, arrays and clusters are omitted", "BOM matches are unverified candidates", "Renode export has not been execution-tested", "No firmware execution or QEMU export"]
+    },
+    {
       "id": "runtime.lab-validation",
       "input": "Physical device or controlled lab evidence",
       "profile": null,
