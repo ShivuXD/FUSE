@@ -53,6 +53,18 @@ class TerminalBannerTests(unittest.TestCase):
         self.assertIn("\x1b[38;2;", banner)
         self.assertNotIn("\x1b[48;", banner)
 
+    def test_banner_contents_are_centered(self):
+        banner = self.render(width=80, no_color=True)
+        for label in ("FUSE  /  VIGIL", "Firmware & Unified Security Engine", "by VIGIL"):
+            line = next(line for line in banner.splitlines() if label in line)
+            content = line[1:-1]
+            self.assertLessEqual(
+                abs(len(content) - len(content.lstrip()) - (len(content) - len(content.rstrip()))),
+                1,
+            )
+        logo = next(line for line in banner.splitlines() if "███████" in line)
+        self.assertGreater(len(logo) - len(logo.lstrip("│ ")), 10)
+
     def test_no_color_and_legacy_encoding(self):
         for encoding in ("utf-8", "cp1252", "ascii"):
             with self.subTest(encoding=encoding):

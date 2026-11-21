@@ -6,7 +6,15 @@ import unittest
 from unittest.mock import patch
 
 from vigil_fuse.cli import main
-from vigil_fuse.cliui import COMMANDS, REGISTRY, Session, completions, parse_input, run_session
+from vigil_fuse.cliui import (
+    COMMANDS,
+    REGISTRY,
+    Session,
+    completions,
+    composer_rule,
+    parse_input,
+    run_session,
+)
 
 
 class TTYBuffer(StringIO):
@@ -20,6 +28,11 @@ class InteractiveTests(unittest.TestCase):
         self.assertEqual([c.name for c in completions("/do")], ["doctor"])
         self.assertEqual(completions("/scan arg"), [])
         self.assertIn("scan", [c.name for c in completions("/sc")])
+
+    def test_composer_rules_fit_and_support_ascii(self) -> None:
+        for width in (30, 40, 80, 120):
+            self.assertEqual(composer_rule(width, "utf-8"), "─" * (width - 1))
+            self.assertEqual(composer_rule(width, "ascii"), "-" * (width - 1))
 
     def test_parse_quotes_and_windows_paths(self) -> None:
         self.assertEqual(

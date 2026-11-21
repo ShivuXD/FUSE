@@ -107,13 +107,13 @@ def show_banner() -> None:
     def frame(text: str = "", *, tint: str = "#CBD5E1") -> str:
         # Visible text only; never pass ANSI sequences into the width calculation.
         text = text[: inner - 4]
-        pad = " " * max(inner - len(text) - 2, 0)
+        left = (inner - len(text) - 2) // 2
+        right = inner - len(text) - 2 - left
         return (
             _paint(side, frame_color, color)
-            + " "
+            + " " * (left + 1)
             + _paint(text, tint, color)
-            + pad
-            + " "
+            + " " * (right + 1)
             + _paint(side, frame_color, color)
         )
 
@@ -126,13 +126,13 @@ def show_banner() -> None:
     if columns >= logo_width + 8:
         for art_line in mark:
             # Render logo without truncating or wrapping inside the frame.
-            spaces = " " * max(inner - len(art_line) - 2, 0)
+            left = (inner - logo_width - 2) // 2
+            right = inner - len(art_line) - 2 - left
             lines.append(
                 _paint(side, frame_color, color)
-                + " "
+                + " " * (left + 1)
                 + _gradient_line(art_line, color, logo_width)
-                + spaces
-                + " "
+                + " " * (right + 1)
                 + _paint(side, frame_color, color)
             )
     else:

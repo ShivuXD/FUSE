@@ -84,6 +84,15 @@ def completions(text: str) -> list[Command]:
     return [command for command in COMMANDS if command.name.startswith(text[1:].lower())]
 
 
+def composer_rule(width: int, encoding: str) -> str:
+    try:
+        "─".encode(encoding)
+        character = "─"
+    except (UnicodeEncodeError, LookupError):
+        character = "-"
+    return character * max(width - 1, 0)
+
+
 def _print(value: object = "") -> None:
     text = safe_terminal_text(str(value))
     encoding = sys.stdout.encoding
@@ -281,11 +290,27 @@ def run_session(dispatch: Callable[..., int]) -> int:
                 _print(session.footer(shutil.get_terminal_size((80, 24)).columns))
             line = (
                 prompt.prompt(
-                    "> ",
+                    lambda: [
+                        (
+                            "fg:#ef4444",
+                            composer_rule(
+                                shutil.get_terminal_size((80, 24)).columns,
+                                sys.stdout.encoding or "ascii",
+                            ),
+                        ),
+                        ("", "\n> "),
+                    ],
                     color_depth=ColorDepth.DEPTH_1_BIT if "NO_COLOR" in os.environ else None,
-                    bottom_toolbar=lambda: session.footer(
-                        shutil.get_terminal_size((80, 24)).columns
-                    ),
+                    bottom_toolbar=lambda: [
+                        (
+                            "fg:#3b82f6",
+                            composer_rule(
+                                shutil.get_terminal_size((80, 24)).columns,
+                                sys.stdout.encoding or "ascii",
+                            ),
+                        ),
+                        ("", "\n" + session.footer(shutil.get_terminal_size((80, 24)).columns - 1)),
+                    ],
                 )
                 if use_prompt
                 else input("> ")
