@@ -18,13 +18,21 @@ def main() -> int:
             payload = sys.stdin.buffer.read(MAX_MESSAGE_BYTES + 1)
         plan = validate_plan(decode_message(payload))
         worker_id = sys.argv[1] if len(sys.argv) >= 2 else "probe"
-        result = validate_result({
-            "schema_version": "0.1", "plan_id": plan["plan_id"],
-            "worker": {"worker_id": worker_id, "analyzer": "probe"},
-            "status": "completed", "artifacts": [], "findings": [],
-            "evidence": [{"kind": "target-identity", "target": plan["target"]}],
-            "coverage": {}, "limitations": ["Probe echoes identity; no target analysis performed"],
-        }, plan, worker_id)
+        result = validate_result(
+            {
+                "schema_version": "0.1",
+                "plan_id": plan["plan_id"],
+                "worker": {"worker_id": worker_id, "analyzer": "probe"},
+                "status": "completed",
+                "artifacts": [],
+                "findings": [],
+                "evidence": [{"kind": "target-identity", "target": plan["target"]}],
+                "coverage": {},
+                "limitations": ["Probe echoes identity; no target analysis performed"],
+            },
+            plan,
+            worker_id,
+        )
     except (ValueError, OSError) as exc:
         print(str(exc), file=sys.stderr)
         return 2

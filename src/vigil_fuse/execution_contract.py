@@ -52,10 +52,21 @@ def decode_message(payload: bytes) -> object:
 
 def validate_plan(value: object) -> dict[str, Any]:
     """Accept only explicitly authorized, passive, isolated worker plans."""
-    plan = _object(value, {
-        "schema_version", "plan_id", "target", "requested_analyzers", "execution_mode",
-        "authorization", "limits", "network_policy", "evidence_requirements", "created_by",
-    })
+    plan = _object(
+        value,
+        {
+            "schema_version",
+            "plan_id",
+            "target",
+            "requested_analyzers",
+            "execution_mode",
+            "authorization",
+            "limits",
+            "network_policy",
+            "evidence_requirements",
+            "created_by",
+        },
+    )
     if plan["schema_version"] != SCHEMA_VERSION or plan["created_by"] != "vigil-fuse":
         raise ValueError("Unsupported execution schema or producer")
     _identifier(plan["plan_id"])
@@ -78,26 +89,44 @@ def validate_plan(value: object) -> dict[str, Any]:
     return plan
 
 
-def create_plan(plan_id: str, target_id: str, sha256: str,
-                execution_mode: str = "local") -> dict[str, Any]:
+def create_plan(
+    plan_id: str, target_id: str, sha256: str, execution_mode: str = "local"
+) -> dict[str, Any]:
     """Create an authorized probe plan; calling this API is an explicit execution choice."""
-    return validate_plan({
-        "schema_version": SCHEMA_VERSION, "plan_id": plan_id,
-        "target": {"target_id": target_id, "sha256": sha256},
-        "requested_analyzers": ["probe"], "execution_mode": execution_mode,
-        "authorization": {"passive_execution": True},
-        "limits": {"cpu_millis": 1000, "memory_mb": 512, "timeout_seconds": 300},
-        "network_policy": "deny", "evidence_requirements": ["target-identity"],
-        "created_by": "vigil-fuse",
-    })
+    return validate_plan(
+        {
+            "schema_version": SCHEMA_VERSION,
+            "plan_id": plan_id,
+            "target": {"target_id": target_id, "sha256": sha256},
+            "requested_analyzers": ["probe"],
+            "execution_mode": execution_mode,
+            "authorization": {"passive_execution": True},
+            "limits": {"cpu_millis": 1000, "memory_mb": 512, "timeout_seconds": 300},
+            "network_policy": "deny",
+            "evidence_requirements": ["target-identity"],
+            "created_by": "vigil-fuse",
+        }
+    )
 
 
 def validate_result(value: object, plan: object, worker_id: str) -> dict[str, Any]:
     """Bind an untrusted envelope to the expected plan and scheduler worker identity."""
     expected = validate_plan(plan)
     _identifier(worker_id)
-    result = _object(value, {"schema_version", "plan_id", "worker", "status", "artifacts",
-                             "findings", "evidence", "coverage", "limitations"})
+    result = _object(
+        value,
+        {
+            "schema_version",
+            "plan_id",
+            "worker",
+            "status",
+            "artifacts",
+            "findings",
+            "evidence",
+            "coverage",
+            "limitations",
+        },
+    )
     if result["schema_version"] != SCHEMA_VERSION or result["plan_id"] != expected["plan_id"]:
         raise ValueError("Result schema or plan identity mismatch")
     if result["worker"] != {"worker_id": worker_id, "analyzer": "probe"}:
@@ -107,8 +136,10 @@ def validate_result(value: object, plan: object, worker_id: str) -> dict[str, An
     if result["artifacts"] != [] or result["findings"] != [] or result["coverage"] != {}:
         raise ValueError("Probe cannot emit artifacts, findings or security coverage")
     limitations = result["limitations"]
-    if not isinstance(limitations, list) or len(limitations) > 16 or any(
-        not isinstance(item, str) or not 1 <= len(item) <= 512 for item in limitations
+    if (
+        not isinstance(limitations, list)
+        or len(limitations) > 16
+        or any(not isinstance(item, str) or not 1 <= len(item) <= 512 for item in limitations)
     ):
         raise ValueError("Invalid result limitations")
     evidence = result["evidence"]

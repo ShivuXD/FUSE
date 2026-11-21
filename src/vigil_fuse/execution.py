@@ -31,7 +31,9 @@ def main() -> int:
         if args.command == "plan":
             output = create_plan(args.plan_id, args.target_id, args.sha256, args.backend)
         else:
-            output = validate_result(read_message(args.result), read_message(args.plan), args.worker_id)
+            output = validate_result(
+                read_message(args.result), read_message(args.plan), args.worker_id
+            )
     except (ValueError, OSError) as exc:
         parser.exit(2, f"Execution handoff rejected: {exc}\n")
     print(json.dumps(output, sort_keys=True))

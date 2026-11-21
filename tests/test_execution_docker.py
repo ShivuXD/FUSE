@@ -15,9 +15,25 @@ pytestmark = pytest.mark.skipif(not IMAGE, reason="explicit worker image require
 
 def run_worker(arguments, payload=None, memory="512m", entrypoint=None):
     name = "fuse-contract-test-" + uuid.uuid4().hex
-    command = ["docker", "run", "--rm", "--name", name, "-i", "--network", "none",
-               "--memory", memory, "--cpus", "1", "--read-only", "--cap-drop", "ALL",
-               "--security-opt", "no-new-privileges"]
+    command = [
+        "docker",
+        "run",
+        "--rm",
+        "--name",
+        name,
+        "-i",
+        "--network",
+        "none",
+        "--memory",
+        memory,
+        "--cpus",
+        "1",
+        "--read-only",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+    ]
     if entrypoint:
         command.extend(["--entrypoint", entrypoint])
     command.extend([IMAGE, *arguments])
@@ -41,8 +57,9 @@ def test_invalid_input_is_process_failure():
 
 
 def test_oom_is_process_failure():
-    process = run_worker(["-c", "data=bytearray(400*1024*1024); print(len(data))"],
-                         memory="64m", entrypoint="python")
+    process = run_worker(
+        ["-c", "data=bytearray(400*1024*1024); print(len(data))"], memory="64m", entrypoint="python"
+    )
     assert process.returncode == 137, process.stderr
 
 
