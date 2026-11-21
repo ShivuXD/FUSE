@@ -58,11 +58,27 @@ class BusEdge:
 
 
 @dataclass(frozen=True)
+class BusObservation:
+    rule_id: str
+    severity: str
+    confidence: str
+    applicability: str
+    validation_status: str
+    pipe_id: str
+    message_id: str
+    pipe: str
+    message_expression: str
+    count: int
+    evidence: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class BusGraph:
     status: str
     nodes: tuple[BusNode, ...]
     edges: tuple[BusEdge, ...]
     limitations: tuple[str, ...]
+    observations: tuple[BusObservation, ...] = ()
 
     def to_json(self) -> str:
         return bounded_json(self, MAX_BUS_GRAPH_JSON_BYTES, indent=2)
@@ -180,9 +196,21 @@ def build_bus_graph(extraction: BusCalls, applications: Mapping[str, str]) -> Bu
             edges.append(BusEdge(app, "transmits", message, call.file, call.line, call.api))
         else:
             limitations.add("At least one recognized call did not produce a graph edge.")
+    subscriptions: dict[tuple[str, str], list[BusEdge]] = {}
+    for edge in edges:
+        if edge.relation == "subscribes_to" and nodes[edge.source].kind == "software_bus_pipe":
+            subscriptions.setdefault((edge.source, edge.target), []).append(edge)
+    observations = tuple(
+        BusObservation(
+            "FUSE-FSW-001", "unknown", "low", "candidate", "not-validated", pipe, message,
+            nodes[pipe].label, nodes[message].label, len(occurrences),
+            tuple(f"{edge.file}:{edge.line}: {edge.api}" for edge in occurrences[:10]),
+        )
+        for (pipe, message), occurrences in sorted(subscriptions.items()) if len(occurrences) > 1
+    )
     return BusGraph(
         "partial", tuple(sorted(nodes.values(), key=lambda item: item.id)),
         tuple(sorted(edges, key=lambda edge: (edge.file, edge.line, edge.api, edge.source,
                                               edge.relation, edge.target))),
-        tuple(sorted(limitations)),
+        tuple(sorted(limitations)), observations,
     )

@@ -53,6 +53,16 @@ def test_graph_uses_explicit_application_and_does_not_guess_transmit_message_id(
     )
     assert graph.to_json() == build_bus_graph(calls, {"app.c": "Payload"}).to_json()
     assert not build_bus_graph(calls, {}).edges
+    assert len(graph.observations) == 1
+    observation = graph.observations[0]
+    assert observation.rule_id == "FUSE-FSW-001" and observation.count == 2
+    assert observation.validation_status == "not-validated"
+    assert observation.severity == "unknown"
+
+
+def test_subscriptions_on_different_pipes_are_not_duplicate() -> None:
+    calls = extract_bus_calls({"app.c": b'CFE_SB_Subscribe(MID, a); CFE_SB_Subscribe(MID, b);'})
+    assert not build_bus_graph(calls, {"app.c": "app"}).observations
 
 
 def test_graph_json_output_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
