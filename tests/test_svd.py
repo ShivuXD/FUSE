@@ -45,3 +45,8 @@ def test_unsupported_derived_peripheral_is_omitted_and_partial() -> None:
     assert result.status == "partial"
     assert result.device is not None and len(result.device.peripherals) == 1
     assert any("Derived" in item for item in result.limitations)
+
+
+def test_text_and_source_labels_are_bounded() -> None:
+    assert parse_svd(VALID, "x" * 1025).status == "invalid"
+    assert parse_svd(VALID.replace(b"Example", b"x" * 1025), "x").status == "invalid"

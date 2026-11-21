@@ -14,6 +14,7 @@ MAX_SVD_DEPTH = 128
 MAX_SVD_PERIPHERALS = 2048
 MAX_SVD_REGISTERS = 10_000
 MAX_SVD_FIELDS = 50_000
+MAX_SVD_TEXT_CHARS = 1024
 
 
 @dataclass(frozen=True)
@@ -97,6 +98,8 @@ def _preflight(data: bytes) -> None:
 
 def _text(element: ET.Element, tag: str) -> str | None:
     value = element.findtext(tag)
+    if value and len(value) > MAX_SVD_TEXT_CHARS:
+        raise ValueError("SVD text field limit exceeded")
     return value.strip() if value and value.strip() else None
 
 
@@ -132,6 +135,8 @@ def parse_svd(data: bytes, source: str) -> SvdResult:
     """Parse a single local description. Unsupported constructs remain partial."""
     if len(data) > MAX_SVD_BYTES:
         return SvdResult("invalid", limitations=("SVD byte limit exceeded",))
+    if not source or len(source) > MAX_SVD_TEXT_CHARS:
+        return SvdResult("invalid", limitations=("SVD source label is missing or too long",))
     try:
         _preflight(data)
         document = ET.fromstring(data)
