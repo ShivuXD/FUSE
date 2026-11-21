@@ -76,7 +76,7 @@ The figure starts from the illustrative `FUSE001` record in the [finding format]
 - Optional Syft and OSV-Scanner dependency analysis, Binwalk firmware signature identification, and Gitleaks history checks.
 - Text, schema-versioned JSON, SARIF, CycloneDX inventory, scan coverage, evidence, and remediation guidance.
 
-See [supported inputs and limits](src/vigil_fuse/support-matrix.json), [firmware analysis](docs/firmware-analysis.md), [optional Ghidra analysis](docs/ghidra-analysis.md), [hardware analysis](docs/hardware-analysis.md), and [known limitations](docs/limitations.md) for exact boundaries. FUSE does not provide compiler-semantic C/C++ analysis, general firmware extraction, device testing, or hardware-in-the-loop validation.
+See [supported inputs and limits](src/vigil_fuse/support-matrix.json), [firmware analysis](docs/firmware-analysis.md), [optional Ghidra analysis](docs/ghidra-analysis.md), [hardware analysis](docs/hardware-analysis.md), and [known limitations](docs/limitations.md) for exact boundaries. An [opt-in Clang stage](docs/cpp-semantic-analysis.md) supplies bounded compiler-semantic C/C++ observations with strict Python validation. General firmware extraction, device testing, and hardware-in-the-loop validation remain outside this stage.
 
 ## Measured scan sample
 

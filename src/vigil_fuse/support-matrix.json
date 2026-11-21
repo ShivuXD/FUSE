@@ -11,6 +11,19 @@
   },
   "capabilities": [
     {
+      "id": "source.clang-semantic",
+      "input": "Explicit compile_commands.json with passive arguments arrays",
+      "profile": "generic",
+      "label": "experimental",
+      "scope": "Opt-in LibTooling AST observations, strict Python validation and selected-build inclusion evidence.",
+      "limitations": [
+        "Optional native LLVM/Clang build required",
+        "No automatic findings, data flow, symbolic execution or runtime reachability",
+        "Narrow compiler argument allowlist; main-file observations only",
+        "Host execution is not an OS sandbox; isolate untrusted inputs"
+      ]
+    },
+    {
       "id": "source.generic",
       "input": "Common source and configuration files",
       "profile": "generic",
@@ -88,7 +101,7 @@
       "profile": null,
       "label": "detected",
       "scope": "Indexes translation units and compiler families as bounded metadata.",
-      "limitations": ["Compiler commands and project code are never executed", "No compiler or semantic C/C++ analyzer is run"]
+      "limitations": ["Compiler commands and project code are never executed", "This metadata inventory does not run the separate opt-in Clang semantic stage"]
     },
     {
       "id": "inventory.esp-idf-lock",
