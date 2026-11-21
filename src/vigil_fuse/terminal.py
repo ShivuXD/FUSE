@@ -6,23 +6,38 @@ import sys
 
 from . import __version__
 
+# Skew each row to the right toward the top to give the block-art letters
+# an italic appearance. This remains portable terminal text rather than
+# relying on ANSI italic, which most terminals do not apply to box glyphs.
 _UNICODE_MARK = (
-    "███████╗██╗   ██╗███████╗███████╗",
-    "██╔════╝██║   ██║██╔════╝██╔════╝",
-    "█████╗  ██║   ██║███████╗█████╗  ",
-    "██╔══╝  ██║   ██║╚════██║██╔══╝  ",
-    "██║     ╚██████╔╝███████║███████╗",
+    "     ███████╗██╗   ██╗███████╗███████╗",
+    "    ██╔════╝██║   ██║██╔════╝██╔════╝",
+    "   █████╗  ██║   ██║███████╗█████╗  ",
+    "  ██╔══╝  ██║   ██║╚════██║██╔══╝  ",
+    " ██║     ╚██████╔╝███████║███████╗",
     "╚═╝      ╚═════╝ ╚══════╝╚══════╝",
 )
 _ASCII_MARK = (
-    "FFFFFF   U   U   SSSSS   EEEEEE",
-    "F        U   U  S        E",
-    "FFFFF    U   U   SSSS    EEEEE",
-    "F        U   U      S    E",
+    "    FFFFFF   U   U   SSSSS   EEEEEE",
+    "   F        U   U  S        E",
+    "  FFFFF    U   U   SSSS    EEEEE",
+    " F        U   U      S    E",
     "F         UUU   SSSSS   EEEEEE",
 )
 _STOPS = ((220, 38, 38), (251, 113, 133), (167, 139, 250), (96, 165, 250), (55, 48, 255))
 _RESET = "\033[0m"
+
+
+def _letter_spaced_mark(mark: tuple[str, ...], gap: int) -> tuple[str, ...]:
+    """Add breathing room between F / U / S / E without changing the glyphs."""
+    result = []
+    for row, line in enumerate(mark):
+        skew = len(mark) - row - 1
+        glyphs = line[skew:]
+        # Fixed-width segments from the original 33-column FUSE block artwork.
+        letters = (glyphs[:8], glyphs[8:17], glyphs[17:25], glyphs[25:])
+        result.append(" " * skew + (" " * gap).join(letters))
+    return tuple(result)
 
 
 def supports_color() -> bool:
@@ -85,6 +100,11 @@ def show_banner() -> None:
         mark = _ASCII_MARK
         unicode_ok = False
 
+    # Keep the original italic pixel font, but separate the four letters.
+    # On narrower terminals, use a one-cell gap so the logo still fits.
+    if unicode_ok:
+        mark = _letter_spaced_mark(mark, gap=2 if columns >= 50 else 1)
+
     color = supports_color()
     if columns < 40:
         lines = [
@@ -119,11 +139,10 @@ def show_banner() -> None:
 
     lines = [""]
     lines.append(_paint(top_left + rule * inner + top_right, frame_color, color))
-    lines.append(frame("FUSE  /  VIGIL", tint="#A78BFA"))
     lines.append(frame())
 
     logo_width = max(map(len, mark))
-    if columns >= logo_width + 8:
+    if columns >= logo_width + 6:
         for art_line in mark:
             # Render logo without truncating or wrapping inside the frame.
             left = (inner - logo_width - 2) // 2
@@ -158,6 +177,137 @@ def show_banner() -> None:
     print("\n".join(lines), file=sys.stderr)
 
 
+def _unicode_available() -> bool:
+    encoding = sys.stderr.encoding or "ascii"
+    try:
+        "".join(_UNICODE_MARK).encode(encoding)
+        return True
+    except (LookupError, UnicodeEncodeError):
+        return False
+
+
+def _rule(length: int, color: str, *, enabled: bool, unicode_ok: bool) -> str:
+    character = "─" if unicode_ok else "-"
+    return _paint(character * max(length, 1), color, enabled)
+
+
+def show_prompt_top() -> None:
+    """Draw the red upper rule (used by the plain-input fallback)."""
+    width = max(10, shutil.get_terminal_size(fallback=(80, 24)).columns - 2)
+    print(
+        _rule(width, "#DC2626", enabled=supports_color(), unicode_ok=_unicode_available()),
+        file=sys.stderr,
+    )
+
+
+def show_prompt_bottom() -> None:
+    """Draw the blue lower rule (used by the plain-input fallback)."""
+    width = max(10, shutil.get_terminal_size(fallback=(80, 24)).columns - 2)
+    print(
+        _rule(width, "#60A5FA", enabled=supports_color(), unicode_ok=_unicode_available()),
+        file=sys.stderr,
+    )
+
+
+_PROMPT_HISTORY = None
+
+
 def read_command() -> str:
-    """Read one command in the interactive FUSE shell."""
-    return input("fuse > ")
+    """Read one command between red and blue rules, directly beside each other.
+
+    prompt_toolkit's bottom_toolbar is deliberately not used here: it anchors
+    to the *bottom of the terminal window*, not beneath the active input.
+    The non-full-screen three-row layout keeps both rules next to the cursor.
+    """
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        return input("fuse > ")
+
+    try:
+        from prompt_toolkit.application import Application, get_app
+        from prompt_toolkit.buffer import Buffer
+        from prompt_toolkit.formatted_text import StyleAndTextTuples
+        from prompt_toolkit.history import InMemoryHistory
+        from prompt_toolkit.key_binding import KeyBindings
+        from prompt_toolkit.key_binding.key_processor import KeyPressEvent
+        from prompt_toolkit.layout import Dimension, HSplit, Layout, Window
+        from prompt_toolkit.layout.controls import BufferControl, FormattedTextControl
+        from prompt_toolkit.layout.processors import BeforeInput
+        from prompt_toolkit.output import ColorDepth
+    except ImportError:
+        # The core scanner still works if the optional UI library is missing.
+        show_prompt_top()
+        command = input("❯ " if _unicode_available() else "> ")
+        show_prompt_bottom()
+        return command
+
+    global _PROMPT_HISTORY
+    if _PROMPT_HISTORY is None:
+        _PROMPT_HISTORY = InMemoryHistory()
+
+    use_color = supports_color()
+    red_style = "fg:#dc2626" if use_color else ""
+    blue_style = "fg:#60a5fa" if use_color else ""
+    cursor_style = "fg:#fb7185 bold" if use_color else ""
+    text_style = "fg:#e2e8f0" if use_color else ""
+    glyph = "─" if _unicode_available() else "-"
+    prompt_symbol = "❯ " if _unicode_available() else "> "
+
+    def line_fragments(style: str) -> StyleAndTextTuples:
+        # Use the active prompt's width; adapt when Windows Terminal resizes.
+        width = max(1, get_app().output.get_size().columns - 2)
+        return [(style, glyph * width)]
+
+    buffer = Buffer(multiline=False, history=_PROMPT_HISTORY)
+    editor = Window(
+        BufferControl(
+            buffer=buffer, input_processors=[BeforeInput(prompt_symbol, style=cursor_style)]
+        ),
+        height=1,
+        dont_extend_height=True,
+        style=text_style,
+    )
+    layout = HSplit(
+        [
+            Window(
+                FormattedTextControl(lambda: line_fragments(red_style)),
+                height=1,
+                dont_extend_height=True,
+            ),
+            editor,
+            Window(
+                FormattedTextControl(lambda: line_fragments(blue_style)),
+                height=1,
+                dont_extend_height=True,
+            ),
+        ],
+        height=Dimension.exact(3),
+    )
+
+    keys = KeyBindings()
+
+    @keys.add("enter")
+    def accept(event: KeyPressEvent) -> None:
+        command = buffer.text
+        if command.strip():
+            _PROMPT_HISTORY.append_string(command)
+        event.app.exit(result=command)
+
+    @keys.add("c-c")
+    def interrupt(event: KeyPressEvent) -> None:
+        event.app.exit(exception=KeyboardInterrupt())
+
+    @keys.add("c-d")
+    def end_of_file(event: KeyPressEvent) -> None:
+        if not buffer.text:
+            event.app.exit(exception=EOFError())
+        else:
+            buffer.delete(1)
+
+    app: Application[str] = Application(
+        layout=Layout(layout, focused_element=editor),
+        key_bindings=keys,
+        full_screen=False,
+        erase_when_done=False,
+        color_depth=ColorDepth.TRUE_COLOR if use_color else ColorDepth.DEPTH_1_BIT,
+    )
+    return app.run()
