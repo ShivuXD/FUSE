@@ -42,7 +42,17 @@ vigil-fuse digital-twin ./project --svd board.svd --peripheral USART2 --hardware
 ```
 
 It returns exit code `1` for partial output and `2` for invalid input. The command
-does not generate or execute a Renode platform.
+does not execute a Renode platform. To generate a synthetic platform string instead:
+
+```sh
+vigil-fuse digital-twin ./project --svd board.svd --peripheral USART2 \
+  --format renode --region USART2=0x400 --ready-bit USART2.SR=0x80
+```
+
+Supply a region size for every selected peripheral. Ready-bit masks are optional,
+explicit synthetic overrides; they are not inferred from source or hardware.
+Generated output contains its limitations as comments and should be reviewed before
+being used by an external emulator.
 
 See Arm's [CMSIS-SVD register specification](https://arm-software.github.io/CMSIS_5/SVD/html/elem_registers.html)
 for inheritance, fields, clusters and arrays.

@@ -9,7 +9,7 @@ import sys
 from typing import TypedDict
 
 from .build_context import _read_bounded, _select_project_file
-from .digital_twin import synthesize_digital_twin
+from .digital_twin import MAX_TWIN_JSON_BYTES, synthesize_digital_twin
 from .device_tree import MAX_DTS_BYTES, parse_device_tree
 from .flight_bus import (
     MAX_BUS_FILE_BYTES,
@@ -23,6 +23,7 @@ from .hardware_bom import inspect_hardware_bom
 from .hardware_netlist import read_netlist_topology
 from .json_limits import bounded_json
 from .physical_reachability import ResourceBinding, correlate_physical_evidence
+from .renode_export import export_renode
 from .seu_analysis import MAX_SEU_BYTES, inspect_critical_state
 from .svd import MAX_SVD_BYTES, parse_svd
 from .text_safety import safe_terminal_text
@@ -68,6 +69,11 @@ def register_commands(commands: argparse._SubParsersAction[argparse.ArgumentPars
     twin.add_argument("--svd", required=True, help="local CMSIS-SVD file inside target")
     twin.add_argument("--peripheral", action="append", default=[], help="select a peripheral by name")
     twin.add_argument("--hardware-bom", help="optional CSV or TSV BOM inside target")
+    twin.add_argument("--format", choices=("json", "renode"), default="json")
+    twin.add_argument("--region", action="append", default=[], metavar="PERIPHERAL=BYTES",
+                      help="explicit Renode region size; repeat per selected peripheral")
+    twin.add_argument("--ready-bit", action="append", default=[], metavar="PERIPHERAL.REGISTER=MASK",
+                      help="explicit synthetic bits set on each Renode read")
     bus = commands.add_parser("flight-bus", help="extract partial cFE bus evidence")
     bus.add_argument("target", type=Path, help="root containing selected C source files")
     bus.add_argument("--source", action="append", required=True, metavar="APP=PATH",
@@ -148,7 +154,32 @@ def run_command(args: argparse.Namespace) -> int:
             raise ValueError("; ".join(result.limitations))
         bom = inspect_hardware_bom(args.target, args.hardware_bom) if args.hardware_bom else None
         twin = synthesize_digital_twin(result, tuple(args.peripheral), bom)
-        sys.stdout.write(twin.to_json())
+        if args.format == "renode":
+            if len(args.region) > 2048 or len(args.ready_bit) > 10_000:
+                raise ValueError("Renode configuration limit exceeded")
+            regions: dict[str, int] = {}
+            for assignment in args.region:
+                name, separator, raw_size = assignment.partition("=")
+                if not separator or not name or name in regions:
+                    raise ValueError("Each --region must uniquely specify PERIPHERAL=BYTES")
+                regions[name] = int(raw_size, 0)
+            ready: dict[tuple[str, str], int] = {}
+            for assignment in args.ready_bit:
+                name, separator, raw_bits = assignment.partition("=")
+                peripheral, dot, register = name.rpartition(".")
+                key = (peripheral, register)
+                if not separator or not dot or not peripheral or not register or key in ready:
+                    raise ValueError("Each --ready-bit must uniquely specify PERIPHERAL.REGISTER=MASK")
+                ready[key] = int(raw_bits, 0)
+            exported = export_renode(twin, regions, ready)
+            platform = "".join(f"# {item}\n" for item in exported.limitations) + exported.platform
+            if len(platform.encode("utf-8")) > MAX_TWIN_JSON_BYTES:
+                raise ValueError("Renode output size limit exceeded")
+            sys.stdout.write(platform)
+        else:
+            if args.region or args.ready_bit:
+                raise ValueError("--region and --ready-bit require --format renode")
+            sys.stdout.write(twin.to_json())
         return 1
     except (OSError, ValueError) as error:
         print(safe_terminal_text(f"vigil-fuse: {error}"), file=sys.stderr)

@@ -86,3 +86,18 @@ allowed_subscribers = ["ADCS"]
     graph = json.loads(capsys.readouterr().out)
     assert graph["policy_source"] == "flight.toml"
     assert graph["policy_observations"][0]["application"] == "PAYLOAD"
+
+
+def test_renode_cli_requires_explicit_region_and_labels_synthetic_output(tmp_path: Path, capsys) -> None:
+    (tmp_path / "chip.svd").write_text('''<device><name>Chip</name><size>32</size>
+<resetMask>0xffffffff</resetMask><peripherals><peripheral><name>UART</name>
+<baseAddress>0x4000</baseAddress><registers><register><name>STATUS</name>
+<addressOffset>0</addressOffset><resetValue>0</resetValue></register></registers>
+</peripheral></peripherals></device>''', encoding="utf-8")
+    args = ["digital-twin", str(tmp_path), "--svd", "chip.svd", "--format", "renode"]
+    assert main(args) == 2
+    assert "region size" in capsys.readouterr().err
+    assert main([*args, "--region", "UART=0x100", "--ready-bit", "UART.STATUS=0x1"]) == 1
+    output = capsys.readouterr().out
+    assert "Synthetic" in output and "{0: 1}" in output
+    assert "not been validated" in output
