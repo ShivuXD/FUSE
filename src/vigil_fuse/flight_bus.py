@@ -23,6 +23,11 @@ _CALL = re.compile(
     r"\b(CFE_SB_CreatePipe|CFE_SB_SubscribeEx|CFE_SB_Subscribe|"
     r"CFE_SB_TransmitMsg|CFE_SB_TransmitBuffer|CFE_MSG_SetMsgId)\s*\("
 )
+_MESSAGE_EXPRESSION = re.compile(
+    r"[A-Za-z_]\w*|0[xX][0-9A-Fa-f]+|\d+|CFE_SB_ValueToMsgId\(\s*[A-Za-z_]\w*\s*\)"
+)
+_OBJECT_TARGET = r"&?\s*[A-Za-z_]\w*(?:(?:\.|->)[A-Za-z_]\w*)*"
+_OBJECT_EXPRESSION = re.compile(rf"(?:CFE_MSG_PTR\(\s*{_OBJECT_TARGET}\s*\)|{_OBJECT_TARGET})")
 
 
 @dataclass(frozen=True)
@@ -173,7 +178,7 @@ def build_bus_graph(extraction: BusCalls, applications: Mapping[str, str]) -> Bu
     limitations = set(extraction.limitations)
     limitations.add("Application ownership is supplied by the caller and not independently verified.")
     limitations.add("Message expressions are symbolic; matching names do not prove matching IDs.")
-    limitations.add("Transmit message objects are not resolved to message IDs.")
+    limitations.add("Transmit message IDs and execution order are not resolved by data flow.")
 
     def node(kind: str, label: str, scope: str = "") -> str:
         digest = hashlib.sha256(f"{kind}\0{scope}\0{label}".encode("utf-8")).hexdigest()
@@ -206,8 +211,7 @@ def build_bus_graph(extraction: BusCalls, applications: Mapping[str, str]) -> Bu
             if not re.fullmatch(r"[A-Za-z_]\w*(?:(?:\.|->)[A-Za-z_]\w*)*", pipe_expression):
                 limitations.add("At least one pipe expression could not be resolved symbolically.")
                 continue
-            if not re.fullmatch(r"[A-Za-z_]\w*|0[xX][0-9A-Fa-f]+|\d+|"
-                                r"CFE_SB_ValueToMsgId\(\s*[A-Za-z_]\w*\s*\)", expression):
+            if not _MESSAGE_EXPRESSION.fullmatch(expression):
                 limitations.add("At least one message expression could not be resolved symbolically.")
                 continue
             pipe = node("software_bus_pipe", pipe_expression, application)
@@ -215,8 +219,17 @@ def build_bus_graph(extraction: BusCalls, applications: Mapping[str, str]) -> Bu
             edges.append(BusEdge(pipe, "subscribes_to", message, call.file, call.line, call.api))
             edges.append(BusEdge(app, "subscribes_to", message, call.file, call.line, call.api))
         elif call.api in {"CFE_SB_TransmitMsg", "CFE_SB_TransmitBuffer"} and args and args[0]:
-            message = node("message_object_expression", args[0], application)
+            expression = re.sub(r"\s+", "", args[0]) if _OBJECT_EXPRESSION.fullmatch(args[0]) else args[0]
+            message = node("message_object_expression", expression, application)
             edges.append(BusEdge(app, "transmits", message, call.file, call.line, call.api))
+        elif call.api == "CFE_MSG_SetMsgId" and len(args) >= 2:
+            if not _OBJECT_EXPRESSION.fullmatch(args[0]) or not _MESSAGE_EXPRESSION.fullmatch(args[1]):
+                limitations.add("At least one SetMsgId expression could not be resolved symbolically.")
+                continue
+            message_object = node("message_object_expression", re.sub(r"\s+", "", args[0]), application)
+            message = node("message_expression", re.sub(r"\s+", "", args[1]))
+            edges.append(BusEdge(message_object, "sets_message_id", message,
+                                 call.file, call.line, call.api))
         else:
             limitations.add("At least one recognized call did not produce a graph edge.")
     subscriptions: dict[tuple[str, str], list[BusEdge]] = {}

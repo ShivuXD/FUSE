@@ -71,3 +71,18 @@ def test_graph_json_output_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("vigil_fuse.flight_bus.MAX_BUS_GRAPH_JSON_BYTES", 100)
     with pytest.raises(ValueError, match="size limit"):
         graph.to_json()
+
+
+def test_set_message_id_and_transmit_share_only_identical_symbolic_object() -> None:
+    calls = extract_bus_calls({"app.c": b'''
+      CFE_MSG_SetMsgId(CFE_MSG_PTR(app.Msg), CFE_SB_ValueToMsgId(CMD_MID));
+      CFE_SB_TransmitMsg(CFE_MSG_PTR(app.Msg), true);
+    '''})
+    graph = build_bus_graph(calls, {"app.c": "PAYLOAD"})
+    setter = next(edge for edge in graph.edges if edge.relation == "sets_message_id")
+    sender = next(edge for edge in graph.edges if edge.relation == "transmits")
+    assert setter.source == sender.target
+    assert next(node for node in graph.nodes if node.id == setter.target).label == (
+        "CFE_SB_ValueToMsgId(CMD_MID)"
+    )
+    assert graph.status == "partial"

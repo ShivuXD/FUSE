@@ -23,7 +23,11 @@ duplicate observations. File ownership is not inferred; calls without assignment
 are omitted. Graphs are capped at 30,000 nodes and 20,000 edges and remain partial.
 The same message expression in two files is only a symbolic match and does not
 establish an identical runtime ID. Transmit object expressions are not linked to
-message IDs. Unhandled expressions and calls are disclosed in limitations.
+message IDs by data-flow analysis. Supported `CFE_MSG_SetMsgId` expressions add a
+symbolic object-to-message edge, and an identical object expression may also appear
+in a transmit edge. This is a syntactic association only: execution order, aliases,
+and runtime IDs are not established. Unhandled expressions and calls are disclosed
+in limitations.
 The graph also contains a low-confidence, unvalidated review observation when the
 same pipe has multiple syntactically identical subscription calls for a symbolic
 message. It reports the count and up to ten locations. Conditional or inactive
