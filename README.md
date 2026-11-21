@@ -2,18 +2,17 @@
 
 ## Firmware & Unified Security Engine
 
-**A [VIGIL](https://github.com/VIGIL-IoT) Project**
+**A standalone sathack project by Team VIGIL**
 
-Created and maintained by Shantanu.
+Created by Team VIGIL.
 
 FUSE is a CLI-first analysis tool for embedded and IoT project repositories. It checks selected source and configuration files, inventories hardware and firmware candidates, reads selected build metadata, and can run optional dependency or firmware analyzers. Reports include evidence and explicit coverage so a static signal is not mistaken for a confirmed vulnerability.
 
-[![CI](https://img.shields.io/github/actions/workflow/status/VIGIL-IoT/VIGIL-FUSE/ci.yml?branch=main&label=CI)](https://github.com/VIGIL-IoT/VIGIL-FUSE/actions/workflows/ci.yml)
-[![Latest release](https://img.shields.io/github/v/release/VIGIL-IoT/VIGIL-FUSE)](https://github.com/VIGIL-IoT/VIGIL-FUSE/releases)
-[![Evaluation report](https://img.shields.io/badge/evaluation-PDF%20report-C84335?logo=adobeacrobatreader&logoColor=white)](https://vigil-iot.github.io/VIGIL-FUSE/)
+[![CI](https://img.shields.io/github/actions/workflow/status/ShivuXD/fuse/ci.yml?branch=main&label=CI)](https://github.com/ShivuXD/fuse/actions/workflows/ci.yml)
+[![Evaluation report](https://img.shields.io/badge/evaluation-PDF%20report-C84335?logo=adobeacrobatreader&logoColor=white)](reports/repository-scans/multi-repository-2026-11-14/README.md)
 [![PyPI version](https://img.shields.io/pypi/v/vigil-fuse.svg?logo=pypi&label=PyPI)](https://pypi.org/project/vigil-fuse/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
-[![License: VIGIL-FUSE Restricted Use v1.2](https://img.shields.io/badge/license-VIGIL--FUSE%20Restricted%20Use%20v1.2-7c3aed)](LICENSE)
+[![Custom restricted-use license v1.2](https://img.shields.io/badge/license-custom%20restricted%20use%20v1.2-7c3aed)](LICENSE)
 
 **Alpha · 0.4.0**
 
@@ -39,7 +38,7 @@ A normal scan writes `findings.json`, `findings.txt`, and `findings.sarif` to `.
 
 See the [usage guide](docs/usage.md) for setup, scan options, optional analyzers, and report review.
 
-Install the published [PyPI package](https://pypi.org/project/vigil-fuse/) or browse the [GitHub releases](https://github.com/VIGIL-IoT/VIGIL-FUSE/releases).
+Install the published [PyPI package](https://pypi.org/project/vigil-fuse/) or browse this repository's source and documentation.
 
 ## How a scan works
 
@@ -85,10 +84,6 @@ The same pinned four-scope cohort was scanned on GitHub-hosted Linux, Windows, a
 
 These timings include 20 ms memory sampling and are descriptive samples from one hosted runner per OS, not a controlled speed ranking. Mynewt Core and ESP-IoT-Solution had oversized selected files skipped on every platform. The linked report also records sampled process-tree RSS. See the [method, limitations, and raw reports](docs/experiments/repository-scan-performance-matrix-2026-10-31.md).
 
-## Relationship to the VIGIL-IoT suite
-
-FUSE is a VIGIL Project. Within the wider [VIGIL-IoT suite](https://github.com/VIGIL-IoT), it inspects candidate weaknesses while SPECTRA-32 can reproduce selected cases in a controlled lab, evaluate mitigations, and measure overhead. Findings remain candidates until the relevant behavior is validated.
-
 ## Documentation
 
 - [Architecture and data flow](docs/architecture.md)
@@ -120,7 +115,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for repository setup and [rule developmen
 
 ## License status
 
-FUSE is a VIGIL-IoT project created and maintained by Shantanu. It is source-available under the custom [VIGIL-FUSE Restricted Use License, version 1.2](LICENSE), with copyright held by Shantanu. The license permits personal, educational, research, internal, and commercial use; private modifications; and publication of analysis outputs. Only unmodified official releases may be redistributed through PyPI and compatible mirrors. Other redistribution, public forks, and published modifications require written permission from Shantanu. This is not an OSI-approved open-source license and has not received external legal review. Version [0.4.0 is published on PyPI](https://pypi.org/project/vigil-fuse/0.4.0/). PyPI Support issue [#12999](https://github.com/pypi/support/issues/12999) remains open. A successful upload is not PyPI policy approval.
+FUSE is a standalone project created by Team VIGIL. It is source-available under the custom restricted-use license, version 1.2 (see [LICENSE](LICENSE)), with copyright held by Shantanu. The license permits personal, educational, research, internal, and commercial use; private modifications; and publication of analysis outputs. Only unmodified official releases may be redistributed through PyPI and compatible mirrors. Other redistribution, public forks, and published modifications require written permission from Shantanu. This is not an OSI-approved open-source license and has not received external legal review. Version [0.4.0 is published on PyPI](https://pypi.org/project/vigil-fuse/0.4.0/). PyPI Support issue [#12999](https://github.com/pypi/support/issues/12999) remains open. A successful upload is not PyPI policy approval.
 
 An earlier public snapshot included MIT terms at [commit `ec91524`](https://github.com/VIGIL-IoT/VIGIL-FUSE/commit/ec91524). This license does not revoke permissions already granted for copies made available under those earlier terms. Review the license attached to the specific version you use.
 
@@ -128,8 +123,8 @@ Because this repository is public on GitHub, GitHub's [Terms of Service](https:/
 
 ---
 
-**FUSE · Firmware & Unified Security Engine · A [VIGIL](https://github.com/VIGIL-IoT) Project**
+**FUSE · Firmware & Unified Security Engine · Team VIGIL**
 
 ## Multi-repository evaluation report
 
-Read the [LaTeX evaluation and reproduction record](reports/repository-scans/multi-repository-2026-11-14/README.md) or the [PDF on GitHub Pages](https://vigil-iot.github.io/VIGIL-FUSE/report.pdf). Four pinned scopes yielded three static review candidates across 4,347 scanned files, with coverage limitations recorded.
+Read the [LaTeX evaluation and reproduction record](reports/repository-scans/multi-repository-2026-11-14/README.md) or the included [PDF report](reports/repository-scans/multi-repository-2026-11-14/publication/report.pdf). Four pinned scopes yielded three static review candidates across 4,347 scanned files, with coverage limitations recorded.
