@@ -12,6 +12,7 @@ MAX_POLICY_BYTES = 256 * 1024
 MAX_POLICY_ENTRIES = 2048
 MAX_POLICY_MEMBERS = 10_000
 MAX_POLICY_TEXT = 512
+MAX_POLICY_RELATION_CHECKS = 20_000
 
 
 @dataclass(frozen=True)
@@ -20,6 +21,7 @@ class BusPolicy:
     sha256: str
     components: tuple[BusComponent, ...]
     subscribers: tuple[tuple[str, tuple[str, ...]], ...]
+    publishers: tuple[tuple[str, tuple[str, ...]], ...]
 
 
 def _name(value: object) -> str:
@@ -57,28 +59,35 @@ def parse_bus_policy(data: bytes, source: str) -> BusPolicy:
         trust = _name(item["trust"]) if "trust" in item else None
         component_items.append(BusComponent(name, criticality, trust))
     subscribers: list[tuple[str, tuple[str, ...]]] = []
+    publishers: list[tuple[str, tuple[str, ...]]] = []
     members = 0
     for raw_expression, item in sorted(messages.items()):
         expression = _name(raw_expression)
-        if not isinstance(item, dict) or set(item) != {"allowed_subscribers"}:
-            raise ValueError("Each message policy requires allowed_subscribers")
-        allowed = item["allowed_subscribers"]
-        if not isinstance(allowed, list):
-            raise ValueError("allowed_subscribers must be an array")
-        members += len(allowed)
-        if members > MAX_POLICY_MEMBERS:
-            raise ValueError("Flight policy member limit exceeded")
-        names = tuple(sorted(_name(value) for value in allowed))
-        if len(set(names)) != len(names):
-            raise ValueError("Duplicate allowed subscriber")
-        subscribers.append((expression, names))
+        if (not isinstance(item, dict) or not item
+                or set(item) - {"allowed_subscribers", "allowed_publishers"}):
+            raise ValueError("Each message policy requires allowed subscribers or publishers")
+        for key, destination in (("allowed_subscribers", subscribers),
+                                 ("allowed_publishers", publishers)):
+            if key not in item:
+                continue
+            allowed = item[key]
+            if not isinstance(allowed, list):
+                raise ValueError(f"{key} must be an array")
+            members += len(allowed)
+            if members > MAX_POLICY_MEMBERS:
+                raise ValueError("Flight policy member limit exceeded")
+            names = tuple(sorted(_name(value) for value in allowed))
+            if len(set(names)) != len(names):
+                raise ValueError(f"Duplicate member in {key}")
+            destination.append((expression, names))
     return BusPolicy(source, hashlib.sha256(data).hexdigest(), tuple(component_items),
-                     tuple(subscribers))
+                     tuple(subscribers), tuple(publishers))
 
 
 def apply_bus_policy(graph: BusGraph, policy: BusPolicy) -> BusGraph:
     """Record exact symbolic subscription mismatches as unvalidated review candidates."""
     allowed = dict(policy.subscribers)
+    allowed_publishers = dict(policy.publishers)
     nodes = {node.id: node for node in graph.nodes}
     observations: list[BusPolicyObservation] = []
     for edge in graph.edges:
@@ -94,6 +103,32 @@ def apply_bus_policy(graph: BusGraph, policy: BusPolicy) -> BusGraph:
             ))
     limitations = set(graph.limitations)
     limitations.add("Policy checks are exact symbolic comparisons, not verified runtime access control.")
+    assignments: dict[str, dict[str, str]] = {}
+    for edge in graph.edges:
+        if edge.relation == "sets_message_id" and nodes[edge.target].label in allowed_publishers:
+            assignments.setdefault(edge.source, {}).setdefault(
+                nodes[edge.target].label, f"{edge.file}:{edge.line}: {edge.api}"
+            )
+    checks = 0
+    for edge in graph.edges:
+        if edge.relation != "transmits" or nodes[edge.source].kind != "flight_application":
+            continue
+        for message, assignment in assignments.get(edge.target, {}).items():
+            checks += 1
+            if checks > MAX_POLICY_RELATION_CHECKS:
+                break
+            if nodes[edge.source].label not in allowed_publishers[message]:
+                observations.append(BusPolicyObservation(
+                    "FUSE-FSW-003", "unknown", "low", "candidate", "not-validated",
+                    nodes[edge.source].label, message,
+                    f"{assignment}; {edge.file}:{edge.line}: {edge.api}; "
+                    "application absent from configured publisher allowlist",
+                ))
+        if checks > MAX_POLICY_RELATION_CHECKS:
+            limitations.add("Publisher relationship check limit reached; further checks were omitted.")
+            break
+    if allowed_publishers:
+        limitations.add("Publisher candidates use symbolic object associations without data-flow validation.")
     return replace(graph, policy_source=policy.source, policy_sha256=policy.sha256,
                    components=policy.components, policy_observations=tuple(observations),
                    limitations=tuple(sorted(limitations)))

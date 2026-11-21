@@ -52,6 +52,7 @@ criticality = "critical"
 
 [flight_software.messages.ADCS_CMD_MID]
 allowed_subscribers = ["ADCS"]
+allowed_publishers = ["ADCS"]
 ```
 
 Only explicitly listed message expressions are checked, using exact symbolic
@@ -61,6 +62,12 @@ not establish a runtime subscription, privilege or exploitability. Criticality
 and trust remain supplied metadata and do not change severity. Policies are
 bounded to 256 KiB, 2,048 component/message entries and 10,000 list members; the
 graph records the policy path and SHA-256.
+
+An optional `allowed_publishers` list uses syntactically matching message-object
+expressions in `CFE_MSG_SetMsgId` and transmit calls to produce a review candidate.
+It is not data-flow or control-flow analysis; aliases, conditional code, message
+mutation and execution order can cause false positives and false negatives. At most
+20,000 publisher relationships are checked, and truncation is reported.
 
 The call interpretation is informed by NASA's [cFE Application Developers
 Guide](https://github.com/nasa/cFE/blob/dev/docs/cFE%20Application%20Developers%20Guide.md),
