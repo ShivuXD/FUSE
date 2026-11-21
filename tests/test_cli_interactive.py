@@ -1,4 +1,4 @@
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
 import tempfile
@@ -31,14 +31,14 @@ class InteractiveTests(unittest.TestCase):
 
     def test_composer_rules_fit_and_support_ascii(self) -> None:
         for width in (30, 40, 80, 120):
-            self.assertEqual(composer_rule(width, "utf-8"), "─" * (width - 1))
+            self.assertEqual(composer_rule(width, "utf-8"), "â”€" * (width - 1))
             self.assertEqual(composer_rule(width, "ascii"), "-" * (width - 1))
 
     def test_parse_quotes_and_windows_paths(self) -> None:
         self.assertEqual(
             parse_input('/scan "C:\\My Projects\\Firmware"'), ["/scan", "C:\\My Projects\\Firmware"]
         )
-        self.assertEqual(parse_input("/scan 'a b/µ'"), ["/scan", "a b/µ"])
+        self.assertEqual(parse_input("/scan 'a b/Âµ'"), ["/scan", "a b/Âµ"])
         with self.assertRaises(ValueError):
             parse_input('/scan "unfinished')
 
@@ -86,6 +86,41 @@ class InteractiveTests(unittest.TestCase):
             with redirect_stdout(StringIO()) as output:
                 session.execute("/findings", lambda *args, **kwargs: self.fail("rescanned"))
             self.assertIn("findings", output.getvalue())
+
+    def test_interactive_scan_shows_summary_and_report_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            (target / "device.py").write_text('password = "device-value-123"\n', encoding="utf-8")
+            session = Session(target)
+            with redirect_stdout(StringIO()) as output, redirect_stderr(StringIO()):
+                session.execute("/scan", main)
+            text = output.getvalue()
+            self.assertIn("Scanning project files", text)
+            self.assertIn("1 findings to review", text)
+            self.assertIn(str(target / ".fuse-results" / "findings.txt"), text)
+            self.assertNotIn("Potential impact:", text)
+            self.assertTrue((target / ".fuse-results" / "findings.json").is_file())
+
+    def test_incomplete_scan_is_not_presented_as_clean(self) -> None:
+        from dataclasses import replace
+        from vigil_fuse.scanner import scan
+
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory)
+            (target / "device.py").write_text("print(1)\n", encoding="utf-8")
+            result = replace(scan(target), discovery_complete=False)
+            with redirect_stdout(StringIO()) as output:
+                Session(target).save_result(result, None)
+            self.assertIn("review incomplete coverage", output.getvalue())
+            self.assertIn("Some analysis was incomplete", output.getvalue())
+
+    def test_scan_progress_stops_on_error(self) -> None:
+        from vigil_fuse.cliui import ScanProgress
+
+        with patch.dict("os.environ", {"TERM": "xterm"}), redirect_stdout(TTYBuffer()) as output:
+            with self.assertRaises(RuntimeError), ScanProgress():
+                raise RuntimeError("failed")
+        self.assertIn("\r", output.getvalue())
 
     def test_narrow_footer_clear_and_exit(self) -> None:
         session = Session(Path("a-very-long-target-name-for-testing"))

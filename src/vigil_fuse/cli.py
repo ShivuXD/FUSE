@@ -1389,6 +1389,7 @@ def main(
     _show_banner: bool = True,
     _prompt_for_pdf: bool = False,
     _result_callback: Callable[[ScanResult, Path | None], None] | None = None,
+    _interactive_scan: bool = False,
 ) -> int:
     actual_argv = list(argv) if argv is not None else sys.argv[1:]
     if not actual_argv and sys.stdin.isatty() and sys.stdout.isatty() and sys.stderr.isatty():
@@ -1664,30 +1665,34 @@ def main(
                 rule_timeout_seconds=args.rule_timeout,
             )
 
-        result = scan(
-            args.target,
-            profile=profile,
-            target_label=target_label,
-            include=include,
-            exclude=exclude,
-            disabled_rules=disabled_rules,
-            max_file_bytes=max_file_bytes,
-            max_firmware_bytes=max_firmware_bytes,
-            max_discovered_paths=max_discovered_paths,
-            max_discovered_directories=max_discovered_directories,
-            max_source_bytes=max_source_bytes,
-            max_scan_seconds=max_scan_seconds,
-            rule_timeout_seconds=args.rule_timeout,
-            firmware_image=firmware_input,
-            sbom_input=sbom_input,
-            build_dir=args.build_dir,
-            zephyr_hardening_report=args.zephyr_hardening_report,
-            platformio_config=args.platformio_config,
-            platformio_environments=tuple(args.platformio_env),
-            compile_commands=args.compile_commands,
-            hardware_bom=args.hardware_bom,
-            hardware_netlist=args.hardware_netlist,
-        )
+        if _interactive_scan:
+            from .cliui import ScanProgress
+
+        with ScanProgress() if _interactive_scan else nullcontext():
+            result = scan(
+                args.target,
+                profile=profile,
+                target_label=target_label,
+                include=include,
+                exclude=exclude,
+                disabled_rules=disabled_rules,
+                max_file_bytes=max_file_bytes,
+                max_firmware_bytes=max_firmware_bytes,
+                max_discovered_paths=max_discovered_paths,
+                max_discovered_directories=max_discovered_directories,
+                max_source_bytes=max_source_bytes,
+                max_scan_seconds=max_scan_seconds,
+                rule_timeout_seconds=args.rule_timeout,
+                firmware_image=firmware_input,
+                sbom_input=sbom_input,
+                build_dir=args.build_dir,
+                zephyr_hardening_report=args.zephyr_hardening_report,
+                platformio_config=args.platformio_config,
+                platformio_environments=tuple(args.platformio_env),
+                compile_commands=args.compile_commands,
+                hardware_bom=args.hardware_bom,
+                hardware_netlist=args.hardware_netlist,
+            )
         network_policy = (
             "no-network"
             if args.no_network
@@ -1709,25 +1714,26 @@ def main(
                 else nullcontext()
             )
             with sandbox_scope:
-                result = _analyze_with_optional_tools(
-                    result,
-                    analyzer_target,
-                    output_dir,
-                    sbom=sbom,
-                    vulnerabilities=vulnerabilities,
-                    firmware=firmware,
-                    firmware_image=firmware_input,
-                    ghidra=ghidra,
-                    ghidra_install_dir=ghidra_install_dir,
-                    ghidra_timeout_seconds=ghidra_timeout_seconds,
-                    ghidra_language=args.ghidra_language,
-                    ghidra_base_address=args.ghidra_base_address,
-                    ghidra_compiler_spec=args.ghidra_compiler_spec,
-                    git_history=git_history,
-                    offline_vulnerabilities=offline_vulnerabilities,
-                    no_network=args.no_network,
-                    sbom_input=sbom_input,
-                )
+                with ScanProgress(optional=True) if _interactive_scan else nullcontext():
+                    result = _analyze_with_optional_tools(
+                        result,
+                        analyzer_target,
+                        output_dir,
+                        sbom=sbom,
+                        vulnerabilities=vulnerabilities,
+                        firmware=firmware,
+                        firmware_image=firmware_input,
+                        ghidra=ghidra,
+                        ghidra_install_dir=ghidra_install_dir,
+                        ghidra_timeout_seconds=ghidra_timeout_seconds,
+                        ghidra_language=args.ghidra_language,
+                        ghidra_base_address=args.ghidra_base_address,
+                        ghidra_compiler_spec=args.ghidra_compiler_spec,
+                        git_history=git_history,
+                        offline_vulnerabilities=offline_vulnerabilities,
+                        no_network=args.no_network,
+                        sbom_input=sbom_input,
+                    )
         if args.product_purl:
             result = replace(result, product_purl=args.product_purl)
         if args.vex:
@@ -1773,7 +1779,11 @@ def main(
         if output_dir is not None:
             _write_reports(result, output_dir)
             _safe_print(f"Reports written to {output_dir}", file=sys.stderr)
-            if args.output_dir is None and config.output_dir is None:
+            if (
+                args.output_dir is None
+                and config.output_dir is None
+                and (not _interactive_scan or args.format != "text")
+            ):
                 sys.stdout.write(
                     to_json(result)
                     if args.format == "json"
@@ -1803,7 +1813,7 @@ def main(
                 else to_text(result)
             )
         if _result_callback is not None:
-            _result_callback(result, output_dir)
+            _result_callback(result, output_dir or (args.output.resolve() if args.output else None))
         if _prompt_for_pdf:
             try:
                 report_answer = input("Generate an aesthetic PDF report? [y/N] ").strip().casefold()

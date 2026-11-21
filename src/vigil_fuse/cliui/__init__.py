@@ -8,6 +8,7 @@ import signal
 from pathlib import Path
 import shutil
 import sys
+import threading
 from typing import Callable
 
 from .. import __version__
@@ -86,8 +87,8 @@ def completions(text: str) -> list[Command]:
 
 def composer_rule(width: int, encoding: str) -> str:
     try:
-        "─".encode(encoding)
-        character = "─"
+        "â”€".encode(encoding)
+        character = "â”€"
     except (UnicodeEncodeError, LookupError):
         character = "-"
     return character * max(width - 1, 0)
@@ -99,6 +100,49 @@ def _print(value: object = "") -> None:
     if encoding:
         text = text.encode(encoding, errors="backslashreplace").decode(encoding)
     print(text)
+
+
+class ScanProgress:
+    """Animate a single truthful activity while the native scan is running."""
+
+    def __init__(self, optional: bool = False) -> None:
+        self.optional = optional
+
+    def __enter__(self) -> ScanProgress:
+        self.stop = threading.Event()
+        self.animated = sys.stdout.isatty() and os.environ.get("TERM") != "dumb"
+        if self.animated:
+            self.thread = threading.Thread(target=self._animate, daemon=True)
+            self.thread.start()
+        else:
+            _print(
+                "Running requested optional analysis..."
+                if self.optional
+                else "Scanning project files and checking security rules..."
+            )
+        return self
+
+    def _animate(self) -> None:
+        frames = "|/-\\"
+        messages = (
+            ("Running requested optional analysis", "Gathering analyzer evidence")
+            if self.optional
+            else ("Inspecting project files", "Checking security rules", "Gathering scan evidence")
+        )
+        tick = 0
+        while not self.stop.is_set():
+            text = f"\r  {frames[tick % len(frames)]} {messages[(tick // 12) % len(messages)]}..."
+            sys.stdout.write(text.ljust(64))
+            sys.stdout.flush()
+            tick += 1
+            self.stop.wait(0.1)
+
+    def __exit__(self, *args: object) -> None:
+        self.stop.set()
+        if self.animated:
+            self.thread.join()
+            sys.stdout.write("\r" + " " * 64 + "\r")
+            sys.stdout.flush()
 
 
 @dataclass
@@ -113,6 +157,38 @@ class Session:
     def save_result(self, result: ScanResult, output: Path | None) -> None:
         self.result = result
         self.output = output
+        incomplete = (
+            not result.analysis_performed
+            or not result.discovery_complete
+            or bool(result.files_skipped or result.limits_reached)
+            or any(
+                item.status in {"partial", "failed", "timeout", "unavailable", "incompatible"}
+                for item in result.analyzers
+            )
+        )
+        _print("\nScan finished" + (" - review incomplete coverage" if incomplete else ""))
+        _print(f"  {result.files_scanned} files checked, {len(result.findings)} findings to review")
+        if result.findings:
+            counts = {
+                level: sum(f.severity == level for f in result.findings)
+                for level in ("critical", "high", "medium", "low", "info")
+            }
+            _print(
+                "  Severity: "
+                + ", ".join(f"{count} {level}" for level, count in counts.items() if count)
+            )
+        _print(
+            "  Findings are security signals, not confirmed exploits. Use /findings to review them."
+        )
+        if incomplete:
+            _print("  Some analysis was incomplete. Check the report coverage section for details.")
+        if output is not None:
+            if output.is_dir():
+                _print("  Reports saved:")
+                for name in ("findings.txt", "findings.json", "findings.sarif"):
+                    _print(f"    {output / name}")
+            else:
+                _print(f"  Report saved: {output}")
 
     def footer(self, width: int) -> str:
         name = safe_terminal_text(self.target.name or str(self.target))
@@ -157,7 +233,9 @@ class Session:
             )
             _print(
                 f"\n{finding.severity.upper()} / {finding.confidence} confidence\n"
-                f"{finding.rule_id}: {finding.title}\n{location}"
+                f"{finding.rule_id}: {finding.title}\n{location}\n"
+                f"What this means: {finding.explanation}\n"
+                f"What to do: {finding.remediation}"
             )
 
     def execute(self, line: str, dispatch: Callable[..., int]) -> bool:
@@ -231,13 +309,16 @@ class Session:
                         argv.append(flag)
                 self.last_action = name
                 self.last_result = "running"
-                if argv[0] == "scan" and name != "plan":
-                    _print("Running scan...")
                 # Avoid interrupting analyzer workers whose cleanup may still be in progress.
                 previous_handler = signal.signal(signal.SIGINT, signal.SIG_IGN)
                 try:
                     try:
-                        code = dispatch(argv, _show_banner=False, _result_callback=self.save_result)
+                        code = dispatch(
+                            argv,
+                            _show_banner=False,
+                            _result_callback=self.save_result,
+                            _interactive_scan=argv[0] == "scan" and name != "plan",
+                        )
                     except SystemExit as error:
                         code = error.code if isinstance(error.code, int) else 2
                 finally:
