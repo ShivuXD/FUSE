@@ -1995,7 +1995,7 @@ def main(
             )
         if _prompt_for_pdf:
             try:
-                report_answer = input("Generate an aesthetic PDF report? [y/N] ").strip().casefold()
+                report_answer = input("Create a PDF report? [y/N] ").strip().casefold()
             except EOFError:
                 report_answer = ""
             if report_answer in {"y", "yes"} and output_dir is not None:
