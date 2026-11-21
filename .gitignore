@@ -15,3 +15,6 @@ fuse-results/
 .taste-skill/
 .vercel/
 .archify/
+
+# Local vulnerable demo reports
+.fuse-demo-results/
