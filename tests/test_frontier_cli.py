@@ -101,3 +101,24 @@ def test_renode_cli_requires_explicit_region_and_labels_synthetic_output(tmp_pat
     output = capsys.readouterr().out
     assert "Synthetic" in output and "{0: 1}" in output
     assert "not been validated" in output
+
+
+def test_physical_command_exact_resource_matching_does_not_guess_ambiguity(tmp_path: Path, capsys) -> None:
+    (tmp_path / "board.dts").write_text('''/ { soc { #address-cells = <1>; #size-cells = <1>;
+      serial@4000 { compatible = "vendor,uart"; reg = <0x4000 0x100>; };
+      serial@5000 { compatible = "vendor,uart"; reg = <0x5000 0x100>; };
+      }; };''', encoding="utf-8")
+    (tmp_path / "board.net").write_text('''<export><components><comp ref="U1"/>
+      <comp ref="J1"/></components><nets><net name="TX"><node ref="U1" pin="42"/>
+      <node ref="J1" pin="2"/></net></nets></export>''', encoding="utf-8")
+    args = ["physical-reachability", str(tmp_path), "--dts", "board.dts", "--netlist", "board.net",
+            "--finding", "F1", "--resource", "UART", "--component", "U1", "--pin", "42",
+            "--mapping-evidence", "board map", "--compatible", "vendor,uart"]
+    assert main(args) == 1
+    ambiguous = json.loads(capsys.readouterr().out)
+    assert ambiguous["status"] == "UNKNOWN" and ambiguous["evidence"] is None
+    assert len(ambiguous["resource_candidates"]["node_paths"]) == 2
+    assert main([*args, "--mmio", "0x4000"]) == 1
+    unique = json.loads(capsys.readouterr().out)
+    assert unique["status"] == "PARTIAL"
+    assert unique["evidence"]["device_tree_node"] == "/soc/serial@4000"

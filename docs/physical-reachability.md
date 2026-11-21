@@ -53,7 +53,10 @@ vigil-fuse physical-reachability ./project --dts board.dts --netlist board.net \
 
 Input files must be inside the target. JSON includes the input hashes, input
 statuses and limitations. Exit code `1` means partial or unknown evidence; `2`
-means invalid input. No automatic finding-to-driver or pinctrl resolution occurs.
+means invalid input. Instead of `--node`, use `--compatible vendor,uart` and/or
+`--mmio 0x40004400` for exact literal candidate matching. Multiple or missing
+matches return `UNKNOWN`; the address is an untranslated bus address. No automatic
+finding-to-driver or pinctrl resolution occurs, and the pin map remains explicit.
 
 `scan --plan` may report advisory command hints from bounded filename metadata.
 Selected-file samples are capped at 100, so absent hints do not establish that an

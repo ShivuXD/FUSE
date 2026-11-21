@@ -22,7 +22,12 @@ from .flight_policy import MAX_POLICY_BYTES, apply_bus_policy, parse_bus_policy
 from .hardware_bom import inspect_hardware_bom
 from .hardware_netlist import read_netlist_topology
 from .json_limits import bounded_json
-from .physical_reachability import ResourceBinding, correlate_physical_evidence
+from .physical_reachability import (
+    MAX_RESOURCE_PINS,
+    ResourceBinding,
+    correlate_physical_evidence,
+    find_resource_candidates,
+)
 from .renode_export import export_renode
 from .seu_analysis import MAX_SEU_BYTES, inspect_critical_state
 from .svd import MAX_SVD_BYTES, parse_svd
@@ -88,7 +93,9 @@ def register_commands(commands: argparse._SubParsersAction[argparse.ArgumentPars
     physical.add_argument("--netlist", required=True, help="local KiCad XML netlist inside target")
     physical.add_argument("--finding", required=True, help="finding identifier")
     physical.add_argument("--resource", required=True, help="resource identifier")
-    physical.add_argument("--node", required=True, help="literal device-tree node path")
+    physical.add_argument("--node", help="literal device-tree node path")
+    physical.add_argument("--compatible", help="exact literal device-tree compatible string")
+    physical.add_argument("--mmio", help="literal untranslated device-tree bus address")
     physical.add_argument("--component", required=True, help="MCU component reference")
     physical.add_argument("--pin", action="append", required=True, help="mapped MCU pin; repeatable")
     physical.add_argument("--mapping-evidence", required=True, help="source of the supplied pin mapping")
@@ -97,19 +104,35 @@ def register_commands(commands: argparse._SubParsersAction[argparse.ArgumentPars
 def run_command(args: argparse.Namespace) -> int:
     try:
         if args.command == "physical-reachability":
+            if len(args.pin) > MAX_RESOURCE_PINS:
+                raise ValueError("Pin mapping limit exceeded")
             path, display = _select_project_file(args.target, args.dts, "--dts")
             data = _read_bounded(path, MAX_DTS_BYTES, "DTS")
             tree = parse_device_tree(data)
             topology = read_netlist_topology(args.target, args.netlist)
-            binding = ResourceBinding(args.finding, args.resource, args.node, args.component,
-                                      tuple(args.pin), args.mapping_evidence)
-            evidence = correlate_physical_evidence(binding, tree, topology)
+            if args.node and (args.compatible is not None or args.mmio is not None):
+                raise ValueError("Use --node or resource identifiers, not both")
+            candidates = None
+            node_path = args.node
+            if node_path is None:
+                address = int(args.mmio, 0) if args.mmio is not None else None
+                candidates = find_resource_candidates(tree, compatible=args.compatible, mmio=address)
+                if candidates.status == "PARTIAL" and len(candidates.node_paths) == 1:
+                    node_path = candidates.node_paths[0]
+            evidence = None
+            if node_path is not None:
+                binding = ResourceBinding(args.finding, args.resource, node_path, args.component,
+                                          tuple(args.pin), args.mapping_evidence)
+                evidence = correlate_physical_evidence(binding, tree, topology)
             payload = {
-                "status": evidence.physical_status,
+                "status": evidence.physical_status if evidence is not None else "UNKNOWN",
                 "device_tree": {"path": display, "sha256": hashlib.sha256(data).hexdigest(),
                                 "status": tree.status, "limitations": tree.limitations},
                 "netlist": {"path": topology.path, "sha256": topology.sha256,
                             "status": topology.status, "limitations": topology.limitations},
+                "requested_resource": {"finding_id": args.finding, "resource_id": args.resource,
+                                       "compatible": args.compatible, "mmio": args.mmio},
+                "resource_candidates": candidates,
                 "evidence": evidence,
             }
             sys.stdout.write(bounded_json(payload, 4 * 1024 * 1024, indent=2))
@@ -143,9 +166,13 @@ def run_command(args: argparse.Namespace) -> int:
         if args.command == "seu":
             path, display = _select_project_file(args.target, args.source, "--source")
             seu_result = inspect_critical_state(_read_bounded(path, MAX_SEU_BYTES, "C source"))
-            payload = {"source": display, "status": seu_result.status,
-                       "states": seu_result.states, "limitations": seu_result.limitations}
-            sys.stdout.write(bounded_json(payload, 4 * 1024 * 1024, indent=2))
+            seu_payload: dict[str, object] = {
+                "source": display,
+                "status": seu_result.status,
+                "states": seu_result.states,
+                "limitations": seu_result.limitations,
+            }
+            sys.stdout.write(bounded_json(seu_payload, 4 * 1024 * 1024, indent=2))
             return 1
         path, display = _select_project_file(args.target, args.svd, "--svd")
         data = _read_bounded(path, MAX_SVD_BYTES, "SVD")
