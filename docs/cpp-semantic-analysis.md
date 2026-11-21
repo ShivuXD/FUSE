@@ -25,6 +25,25 @@ Ordinary scans and CLIUI behavior remain unchanged. LLVM is not a Python depende
 Absence returns `unavailable`; invalid probes return `incompatible`. Doctor performs
 a successful bounded JSON version probe before displaying version or database support.
 
+On Windows, the LLVM build image produces a Linux executable, so run the adapter inside
+that image. This PowerShell example mounts FUSE source, the selected project and the
+executable read-only; it disables networking and limits the container. Replace the
+target path with a project that has `compile_commands.json` at its root:
+
+```powershell
+$repoPath = (Resolve-Path .).Path
+$targetPath = (Resolve-Path C:\work\firmware).Path
+$binaryPath = (Resolve-Path native\clang-analyzer\build\fuse-clang-analyzer).Path
+$dockerLimits = @('--rm', '--network', 'none', '--read-only', '--tmpfs', '/tmp:rw,noexec,nosuid,size=64m', '--memory', '4g', '--cpus', '2', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--mount', "type=bind,source=$repoPath\src,target=/fuse-src,readonly", '--mount', "type=bind,source=$targetPath,target=/target,readonly", '--mount', "type=bind,source=$binaryPath,target=/usr/local/bin/fuse-clang-analyzer,readonly", '--env', 'PYTHONPATH=/fuse-src', '--env', 'PYTHONDONTWRITEBYTECODE=1', 'fuse-clang-build:llvm18')
+docker run @dockerLimits python3 -m vigil_fuse doctor
+docker run @dockerLimits python3 -m vigil_fuse.clang_analyzer /target /target/compile_commands.json
+```
+
+The same invocation was smoke-tested against the checked-in corpus and returned
+`completed`, 30 selected API observations, and 12 `BUILD_INCLUDED` translation units.
+Windows `doctor` stays `unavailable` because that Linux executable cannot run directly
+on the Windows host.
+
 ## Compilation context and trust boundary
 
 The bounded [JSON compilation database](https://clang.llvm.org/docs/JSONCompilationDatabase.html)
