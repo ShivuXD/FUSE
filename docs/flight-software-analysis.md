@@ -13,7 +13,7 @@ encountering malformed input is disclosed. Results are always `partial`: matchin
 expressions can be declarations or inactive code, and preprocessing, types, data
 flow and application ownership are not evaluated. A transmit message pointer is
 not assumed to be a message ID. No trust level or privilege is inferred. This
-building block does not yet produce security findings or a CLI output.
+building block does not yet produce security findings.
 
 `build_bus_graph` consumes the call records and a caller-supplied mapping from file
 paths to application names. It exports deterministic JSON with application, pipe,
@@ -24,6 +24,11 @@ are omitted. Graphs are capped at 30,000 nodes and 20,000 edges and remain parti
 The same message expression in two files is only a symbolic match and does not
 establish an identical runtime ID. Transmit object expressions are not linked to
 message IDs. Unhandled expressions and calls are disclosed in limitations.
+
+Run `vigil-fuse flight-bus ./project --source PAYLOAD=src/payload.c`; repeat
+`--source APP=PATH` to assign additional files. Paths must be inside the target.
+JSON is written to standard output. Exit code `1` means partial analysis; `2`
+means invalid input. The command does not build or execute source code.
 
 The call interpretation is informed by NASA's [cFE Application Developers
 Guide](https://github.com/nasa/cFE/blob/dev/docs/cFE%20Application%20Developers%20Guide.md),

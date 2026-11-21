@@ -16,5 +16,7 @@ can produce `PARTIAL`. The checks do not prove radiation safety, and they do not
 model data flow, preprocessing, interrupts, hardware ECC or protection elsewhere.
 
 Processing is limited to 2 MiB per file, 512 state names, 4,096 characters per
-line and 20,000 state-use checks. This is an internal API, not yet a CLI or scan
-stage; it never executes target code.
+line and 20,000 state-use checks. Run `vigil-fuse seu ./project --source src/app.c`
+to write partial JSON to standard output. The source must be inside the target;
+exit code `1` means partial analysis and `2` means invalid input. This is not yet
+integrated into the scan stage and never executes target code.
