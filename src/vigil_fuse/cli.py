@@ -28,6 +28,7 @@ from .analyzers import (
 from .baseline import create_baseline, diff_baseline, suppress_finding, unsuppress_finding
 from .build_context import inspect_compilation_database, inspect_platformio
 from .config import ScanConfig, load_config
+from .component_graph import build_component_graph
 from .ghidra_analyzer import (
     GHIDRA_DEFAULT_TIMEOUT_SECONDS,
     GHIDRA_MAXIMUM_INPUT_BYTES,
@@ -1470,7 +1471,10 @@ def main(
         return 0
     if args.command == "inspect":
         try:
-            _safe_print(json.dumps(inspect_repository(args.target), indent=2))
+            dna = inspect_repository(args.target)
+            _safe_print(
+                json.dumps({**dna, "component_graph": build_component_graph(dna)}, indent=2)
+            )
             return 0
         except (OSError, ValueError) as error:
             _safe_print(f"vigil-fuse: {error}", file=sys.stderr)

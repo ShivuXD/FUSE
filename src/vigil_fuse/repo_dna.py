@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import json
 from pathlib import Path
 from typing import TypedDict
 
@@ -20,6 +21,11 @@ MARKERS: dict[str, tuple[str, ...]] = {
     "notebooks/research": (".ipynb",),
     "web-frontend": ("next.config.js", "next.config.mjs", "next.config.ts"),
     "kubernetes": ("kustomization.yaml", "chart.yaml"),
+    "data-science": ("environment.yml",),
+    "data-pipeline": ("airflow.cfg", "dags.yaml"),
+    "kernel/driver": ("kconfig", "kbuild"),
+    "toolchain": ("toolchain.cmake",),
+    "detection-rules": ("sigma.yml",),
 }
 ROOT_MARKERS = frozenset(
     {
@@ -53,6 +59,7 @@ class RepoDNA(TypedDict):
     schema_version: str
     classifications: list[Classification]
     languages: list[str]
+    frameworks: list[str]
     components: list[str]
     complete: bool
     limitations: list[str]
@@ -68,6 +75,7 @@ def inspect_repository(target: str | Path) -> RepoDNA:
     languages: set[str] = set()
     components: set[str] = set()
     limitations: list[str] = []
+    frameworks: set[str] = set()
     count = 0
     directories = 0
 
@@ -103,6 +111,38 @@ def inspect_repository(target: str | Path) -> RepoDNA:
                 languages.add(LANGUAGES[path.suffix.casefold()])
             if lower in ROOT_MARKERS:
                 components.add(current.relative_to(root).as_posix())
+            if lower == "package.json":
+                try:
+                    if path.stat().st_size <= 262_144:
+                        with path.open("rb") as stream:
+                            raw = stream.read(262_145)
+                        if len(raw) > 262_144:
+                            limitations.append("package manifest exceeds size limit")
+                            continue
+                        manifest = json.loads(raw.decode("utf-8"))
+                        if isinstance(manifest, dict):
+                            deps: set[str] = set()
+                            for key in ("dependencies", "devDependencies"):
+                                value = manifest.get(key)
+                                if isinstance(value, dict):
+                                    deps.update(value)
+                            for package, label in (
+                                ("next", "Next.js"),
+                                ("react", "React"),
+                                ("express", "Express"),
+                            ):
+                                if package in deps:
+                                    frameworks.add(label)
+                                    category = (
+                                        "web-backend" if package == "express" else "web-frontend"
+                                    )
+                                    signals.setdefault(category, set()).add(
+                                        relative + ": " + package
+                                    )
+                    else:
+                        limitations.append("package manifest exceeds size limit")
+                except (OSError, UnicodeError, ValueError, RecursionError):
+                    limitations.append("package manifest could not be parsed")
             for label, markers in MARKERS.items():
                 if (
                     lower in markers
@@ -127,6 +167,7 @@ def inspect_repository(target: str | Path) -> RepoDNA:
         "schema_version": "0.1",
         "classifications": classifications,
         "languages": sorted(languages),
+        "frameworks": sorted(frameworks),
         "components": sorted(components)[:MAX_COMPONENTS],
         "complete": not limitations,
         "limitations": sorted(set([*limitations, "confidence is not calibrated"])),

@@ -4,6 +4,7 @@ import pytest
 
 from vigil_fuse.repo_dna import inspect_repository
 from vigil_fuse.cli import main
+from vigil_fuse.component_graph import build_component_graph
 
 
 def test_mixed_project_is_deterministic_and_passive(tmp_path: Path) -> None:
@@ -51,3 +52,31 @@ def test_depth_limit_is_visible(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     result = inspect_repository(tmp_path)
     assert not result["complete"]
     assert "directory depth limit reached" in result["limitations"]
+
+
+def test_dependency_metadata_distinguishes_frontend_and_backend(tmp_path: Path) -> None:
+    (tmp_path / "package.json").write_text(
+        '{"dependencies":{"next":"1", "express":"1"}}', encoding="utf-8"
+    )
+    result = inspect_repository(tmp_path)
+    assert result["frameworks"] == ["Express", "Next.js"]
+    assert {c["type"] for c in result["classifications"]} >= {"web-backend", "web-frontend"}
+
+
+def test_malformed_manifest_reports_incomplete(tmp_path: Path) -> None:
+    (tmp_path / "package.json").write_text("{", encoding="utf-8")
+    result = inspect_repository(tmp_path)
+    assert not result["complete"]
+    assert "package manifest could not be parsed" in result["limitations"]
+
+
+def test_component_graph_contains_components_deterministically(tmp_path: Path) -> None:
+    (tmp_path / "app").mkdir()
+    (tmp_path / "app" / "package.json").write_text("{}", encoding="utf-8")
+    dna = inspect_repository(tmp_path)
+    graph = build_component_graph(dna)
+    assert graph == build_component_graph(dna)
+    assert graph["edges"] == [
+        {"source": "repository", "relation": "contains", "target": "component:app"}
+    ]
+    assert graph["complete"]
