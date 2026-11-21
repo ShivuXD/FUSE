@@ -40,6 +40,7 @@ from .ghidra_analyzer import (
     detect_binary_input,
 )
 from .esp_idf_lock import lock_parser_available
+from .frontier_cli import frontier_hints, register_commands as register_frontier_commands, run_command as run_frontier_command
 from .hardware_bom import hardware_bom_document
 from .model import AnalysisArtifact, AnalyzerStatus, ScanResult
 from .platform_context import detect_project_frameworks, resolve_build_dir
@@ -100,6 +101,8 @@ class _ScanPlan(TypedDict):
     selected_zephyr_hardening_report: str | None
     detected_frameworks: list[_FrameworkHint]
     framework_hints_are_advisory: bool
+    frontier_hints: list[_FrameworkHint]
+    frontier_hints_note: str
     build_context: dict[str, object]
     discovery_preview: DiscoveryPreview | None
     support: CapabilitySummary
@@ -149,6 +152,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--version", action="version", version=f"FUSE {__version__}")
     commands = parser.add_subparsers(dest="command")
+    register_frontier_commands(commands)
     inspect_parser = commands.add_parser("inspect", help="inspect repository characteristics")
     inspect_parser.add_argument("target", type=Path)
     doctor_parser = commands.add_parser(
@@ -1064,6 +1068,11 @@ def _scan_plan(
             }
         )
 
+    cyber_physical_hints = frontier_hints(
+        discovery_preview["selected_files_sample"], discovery_preview["unsupported_file_types"],
+        discovery_preview["hardware_category_counts"], has_bom=hardware_bom is not None,
+        has_netlist=hardware_netlist is not None,
+    ) if discovery_preview is not None else []
     plan: _ScanPlan = {
         "target": shareable_target,
         "target_kind": kind,
@@ -1077,6 +1086,11 @@ def _scan_plan(
         "selected_zephyr_hardening_report": selected_hardening_report,
         "detected_frameworks": framework_hints,
         "framework_hints_are_advisory": True,
+        "frontier_hints": cyber_physical_hints,
+        "frontier_hints_note": (
+            "Advisory filename evidence only; selected-file samples are capped at 100. "
+            "An absent hint is not proof of absence, and scan does not run these commands."
+        ),
         "build_context": {
             "platformio": {
                 "status": platformio_inventory.status,
@@ -1160,6 +1174,9 @@ def _scan_plan(
                 f"translation unit(s); commands will not run."
             )
         _safe_print(f"Selected profile controls analyzer routing: {profile}")
+        for hint in cyber_physical_hints:
+            _safe_print(f"Experimental command available: {hint['name']} ({'; '.join(hint['evidence'])})")
+        _safe_print(plan["frontier_hints_note"])
         if discovery_preview is not None:
             _safe_print(
                 "Discovery preview: "
@@ -1568,6 +1585,8 @@ def main(
     if args.command is None:
         parser.print_help()
         return 0
+    if args.command in {"digital-twin", "flight-bus", "seu", "physical-reachability"}:
+        return run_frontier_command(args)
     if args.command == "inspect":
         try:
             dna = inspect_repository(args.target)
