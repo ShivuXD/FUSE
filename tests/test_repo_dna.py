@@ -80,3 +80,12 @@ def test_component_graph_contains_components_deterministically(tmp_path: Path) -
         {"source": "repository", "relation": "contains", "target": "component:app"}
     ]
     assert graph["complete"]
+
+
+def test_esp_idf_framework_hints_reuse_existing_detection(tmp_path: Path) -> None:
+    (tmp_path / "CMakeLists.txt").write_text(
+        "include($ENV{IDF_PATH}/tools/cmake/project.cmake)", encoding="utf-8"
+    )
+    result = inspect_repository(tmp_path)
+    assert "esp-idf" in result["frameworks"]
+    assert any(item["type"] == "embedded" for item in result["classifications"])

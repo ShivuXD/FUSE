@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import TypedDict
 
 from .scanner import SKIPPED_DIRECTORIES
+from .platform_context import detect_project_frameworks
 
 MAX_PATHS = 10_000
 MAX_DIRECTORIES = 2_000
@@ -155,6 +156,15 @@ def inspect_repository(target: str | Path) -> RepoDNA:
             break
     if len(components) > MAX_COMPONENTS:
         limitations.append("component limit reached")
+    for component in sorted(components | {"."})[:MAX_COMPONENTS]:
+        try:
+            for framework, evidence in detect_project_frameworks(root / component):
+                frameworks.add(framework)
+                signals.setdefault("embedded", set()).update(
+                    f"{component}: {item}" for item in evidence
+                )
+        except OSError:
+            limitations.append("framework context could not be inspected")
     classifications: list[Classification] = [
         {
             "type": label,
