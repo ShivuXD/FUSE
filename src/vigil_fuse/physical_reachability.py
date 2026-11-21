@@ -147,10 +147,17 @@ def correlate_physical_evidence(
     binding: ResourceBinding, tree: DeviceTreeResult, topology: NetlistTopology
 ) -> PhysicalReachability:
     """Correlate an operator-supplied mapping; do not infer pins or exploitability."""
+    labels = (
+        binding.finding_id, binding.resource_id, binding.device_tree_node,
+        binding.component, binding.mapping_evidence,
+    )
     if (
         not binding.finding_id or not binding.resource_id or not binding.device_tree_node
         or not binding.component or not binding.mapping_evidence or not binding.pins
         or len(binding.pins) > MAX_RESOURCE_PINS or any(not pin for pin in binding.pins)
+        or any(len(value) > 1024 or "\0" in value for value in labels)
+        or any(len(pin) > 128 or "\0" in pin for pin in binding.pins)
+        or len(set(binding.pins)) != len(binding.pins)
     ):
         raise ValueError("A bounded, evidenced resource-to-pin mapping is required")
     nodes = [node for node in tree.nodes if node.path == binding.device_tree_node]

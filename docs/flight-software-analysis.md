@@ -69,6 +69,12 @@ It is not data-flow or control-flow analysis; aliases, conditional code, message
 mutation and execution order can cause false positives and false negatives. At most
 20,000 publisher relationships are checked, and truncation is reported.
 
+Current review signals cover repeated symbolic subscriptions and explicitly
+configured subscriber/publisher boundaries. They do not yet check command-length
+validation, command handler validation paths, generic broad subscriptions or
+low-trust to flight-critical communications without corresponding explicit policy.
+No F Prime parser is included.
+
 The call interpretation is informed by NASA's [cFE Application Developers
 Guide](https://github.com/nasa/cFE/blob/dev/docs/cFE%20Application%20Developers%20Guide.md),
 which describes pipes, subscriptions and message transmission.

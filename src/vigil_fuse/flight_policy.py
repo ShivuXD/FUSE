@@ -37,7 +37,7 @@ def parse_bus_policy(data: bytes, source: str) -> BusPolicy:
     _name(source)
     try:
         document = tomllib.loads(data.decode("utf-8-sig"))
-    except (UnicodeError, tomllib.TOMLDecodeError) as error:
+    except (UnicodeError, tomllib.TOMLDecodeError, RecursionError) as error:
         raise ValueError("Invalid UTF-8 TOML flight policy") from error
     if set(document) != {"flight_software"} or not isinstance(document["flight_software"], dict):
         raise ValueError("Flight policy requires a [flight_software] table")
