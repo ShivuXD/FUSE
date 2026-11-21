@@ -120,11 +120,16 @@ def show_banner() -> None:
     logo_width = max(map(len, mark))
     if inner >= logo_width + 2:
         for art_line in mark:
-            spaces = " " * max(inner - len(art_line) - 2, 0)
+            # Center the full ASCII mark inside the blue frame.
+            padding = max(inner - logo_width, 0)
+            left = padding // 2
+            right = padding - left
             lines.append(
                 _paint(side, frame_color, color)
-                + " " + _gradient_line(art_line, color, logo_width)
-                + spaces + " " + _paint(side, frame_color, color)
+                + " " * left
+                + _gradient_line(art_line, color, logo_width)
+                + " " * right
+                + _paint(side, frame_color, color)
             )
     else:
         lines.append(frame("FUSE", tint="#A78BFA", bold=True))
@@ -155,7 +160,7 @@ def show_prompt_bottom() -> None:
     """Draw the blue lower rule (used by the plain-input fallback)."""
     width = max(10, shutil.get_terminal_size(fallback=(80, 24)).columns - 2)
     print(
-        _rule(width, "#3730FF", enabled=supports_color(), unicode_ok=_unicode_available()),
+        _rule(width, "#60A5FA", enabled=supports_color(), unicode_ok=_unicode_available()),
         file=sys.stderr,
     )
 
@@ -192,7 +197,7 @@ def read_command() -> str:
 
     use_color = supports_color()
     red_style = "fg:#dc2626" if use_color else ""
-    blue_style = "fg:#3730ff" if use_color else ""
+    blue_style = "fg:#60a5fa" if use_color else ""
     cursor_style = "fg:#fb7185 bold" if use_color else ""
     text_style = "fg:#e2e8f0" if use_color else ""
     glyph = "─" if _unicode_available() else "-"
