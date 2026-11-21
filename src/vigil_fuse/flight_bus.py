@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
+import json
 import re
 from typing import Mapping
 
@@ -12,6 +14,8 @@ MAX_BUS_TOTAL_BYTES = 10 * 1024 * 1024
 MAX_BUS_CALLS = 10_000
 MAX_BUS_ARGUMENT_CHARS = 4096
 MAX_BUS_CALL_DEPTH = 64
+MAX_BUS_GRAPH_EDGES = 20_000
+MAX_BUS_GRAPH_NODES = 30_000
 _CALL = re.compile(
     r"\b(CFE_SB_CreatePipe|CFE_SB_SubscribeEx|CFE_SB_Subscribe|"
     r"CFE_SB_TransmitMsg|CFE_SB_TransmitBuffer|CFE_MSG_SetMsgId)\s*\("
@@ -31,6 +35,36 @@ class BusCalls:
     status: str
     calls: tuple[BusCall, ...]
     limitations: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class BusNode:
+    id: str
+    kind: str
+    label: str
+
+
+@dataclass(frozen=True)
+class BusEdge:
+    source: str
+    relation: str
+    target: str
+    file: str
+    line: int
+    api: str
+
+
+@dataclass(frozen=True)
+class BusGraph:
+    status: str
+    nodes: tuple[BusNode, ...]
+    edges: tuple[BusEdge, ...]
+    limitations: tuple[str, ...]
+
+    def to_json(self) -> str:
+        from dataclasses import asdict
+
+        return json.dumps(asdict(self), ensure_ascii=True, sort_keys=True, indent=2) + "\n"
 
 
 def _mask_c(text: str) -> tuple[str, bool]:
@@ -126,3 +160,64 @@ def extract_bus_calls(files: Mapping[str, bytes]) -> BusCalls:
             calls.append(BusCall(name, line, match.group(1), tuple(parts)))
     # shortcut: C preprocessing and control flow are unresolved, upgrade before complete graphs.
     return BusCalls("partial", tuple(calls), tuple(sorted(limitations)))
+
+
+def build_bus_graph(extraction: BusCalls, applications: Mapping[str, str]) -> BusGraph:
+    """Build symbolic relationships only for files assigned to an application by the caller."""
+    nodes: dict[str, BusNode] = {}
+    edges: list[BusEdge] = []
+    limitations = set(extraction.limitations)
+    limitations.add("Application ownership is supplied by the caller and not independently verified.")
+    limitations.add("Message expressions are symbolic; matching names do not prove matching IDs.")
+    limitations.add("Transmit message objects are not resolved to message IDs.")
+
+    def node(kind: str, label: str, scope: str = "") -> str:
+        digest = hashlib.sha256(f"{kind}\0{scope}\0{label}".encode("utf-8")).hexdigest()
+        identifier = f"{kind}:{digest}"
+        nodes.setdefault(identifier, BusNode(identifier, kind, label))
+        return identifier
+
+    if len(extraction.calls) > MAX_BUS_CALLS:
+        limitations.add("Software-bus call limit reached; remaining calls were omitted.")
+    for call in extraction.calls[:MAX_BUS_CALLS]:
+        application = applications.get(call.file)
+        if not application or len(application) > 512 or "\0" in application:
+            limitations.add("Calls in files without an application assignment were omitted.")
+            continue
+        if any(len(argument) > MAX_BUS_ARGUMENT_CHARS for argument in call.arguments):
+            limitations.add("An oversized call argument was omitted.")
+            continue
+        if len(nodes) + 3 > MAX_BUS_GRAPH_NODES or len(edges) + 2 > MAX_BUS_GRAPH_EDGES:
+            limitations.add("Software-bus graph limit reached; remaining calls were omitted.")
+            break
+        app = node("flight_application", application)
+        args = call.arguments
+        if call.api == "CFE_SB_CreatePipe" and args and re.fullmatch(
+            r"&\s*[A-Za-z_]\w*(?:(?:\.|->)[A-Za-z_]\w*)*", args[0]
+        ):
+            pipe = node("software_bus_pipe", re.sub(r"\s+", "", args[0])[1:], application)
+            edges.append(BusEdge(app, "creates", pipe, call.file, call.line, call.api))
+        elif call.api in {"CFE_SB_Subscribe", "CFE_SB_SubscribeEx"} and len(args) >= 2:
+            expression, pipe_expression = args[:2]
+            if not re.fullmatch(r"[A-Za-z_]\w*(?:(?:\.|->)[A-Za-z_]\w*)*", pipe_expression):
+                limitations.add("At least one pipe expression could not be resolved symbolically.")
+                continue
+            if not re.fullmatch(r"[A-Za-z_]\w*|0[xX][0-9A-Fa-f]+|\d+|"
+                                r"CFE_SB_ValueToMsgId\(\s*[A-Za-z_]\w*\s*\)", expression):
+                limitations.add("At least one message expression could not be resolved symbolically.")
+                continue
+            pipe = node("software_bus_pipe", pipe_expression, application)
+            message = node("message_expression", re.sub(r"\s+", "", expression))
+            edges.append(BusEdge(pipe, "subscribes_to", message, call.file, call.line, call.api))
+            edges.append(BusEdge(app, "subscribes_to", message, call.file, call.line, call.api))
+        elif call.api in {"CFE_SB_TransmitMsg", "CFE_SB_TransmitBuffer"} and args and args[0]:
+            message = node("message_object_expression", args[0], application)
+            edges.append(BusEdge(app, "transmits", message, call.file, call.line, call.api))
+        else:
+            limitations.add("At least one recognized call did not produce a graph edge.")
+    return BusGraph(
+        "partial", tuple(sorted(nodes.values(), key=lambda item: item.id)),
+        tuple(sorted(edges, key=lambda edge: (edge.file, edge.line, edge.api, edge.source,
+                                              edge.relation, edge.target))),
+        tuple(sorted(limitations)),
+    )

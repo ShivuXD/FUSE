@@ -13,7 +13,17 @@ encountering malformed input is disclosed. Results are always `partial`: matchin
 expressions can be declarations or inactive code, and preprocessing, types, data
 flow and application ownership are not evaluated. A transmit message pointer is
 not assumed to be a message ID. No trust level or privilege is inferred. This
-building block does not yet produce a bus graph, security findings or a CLI output.
+building block does not yet produce security findings or a CLI output.
+
+`build_bus_graph` consumes the call records and a caller-supplied mapping from file
+paths to application names. It exports deterministic JSON with application, pipe,
+symbolic message-expression and transmitted message-object nodes. Create-pipe,
+subscribe and transmit relationships retain source file, line and API. It preserves
+duplicate observations. File ownership is not inferred; calls without assignments
+are omitted. Graphs are capped at 30,000 nodes and 20,000 edges and remain partial.
+The same message expression in two files is only a symbolic match and does not
+establish an identical runtime ID. Transmit object expressions are not linked to
+message IDs. Unhandled expressions and calls are disclosed in limitations.
 
 The call interpretation is informed by NASA's [cFE Application Developers
 Guide](https://github.com/nasa/cFE/blob/dev/docs/cFE%20Application%20Developers%20Guide.md),

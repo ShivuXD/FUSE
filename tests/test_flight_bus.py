@@ -1,4 +1,4 @@
-from vigil_fuse.flight_bus import MAX_BUS_FILE_BYTES, extract_bus_calls
+from vigil_fuse.flight_bus import MAX_BUS_FILE_BYTES, build_bus_graph, extract_bus_calls
 
 
 def test_extracts_calls_with_nested_arguments_and_ignores_comments_and_strings() -> None:
@@ -30,3 +30,24 @@ def test_file_order_and_duplicate_calls_are_deterministic() -> None:
     call = b'CFE_SB_Subscribe(CMD_MID, pipe); CFE_SB_Subscribe(CMD_MID, pipe);'
     result = extract_bus_calls({"z.c": call, "a.c": call})
     assert [item.file for item in result.calls] == ["a.c", "a.c", "z.c", "z.c"]
+
+
+def test_graph_uses_explicit_application_and_does_not_guess_transmit_message_id() -> None:
+    calls = extract_bus_calls({"app.c": b'''
+      CFE_SB_CreatePipe(&app.pipe, DEPTH, "PIPE");
+      CFE_SB_Subscribe(CMD_MID, app.pipe);
+      CFE_SB_Subscribe(CMD_MID, app.pipe);
+      CFE_SB_TransmitMsg(CFE_MSG_PTR(app.message), true);
+    '''})
+    graph = build_bus_graph(calls, {"app.c": "Payload"})
+    assert graph.status == "partial"
+    assert [edge.relation for edge in graph.edges] == [
+        "creates", "subscribes_to", "subscribes_to", "subscribes_to",
+        "subscribes_to", "transmits"
+    ]
+    transmitted = next(edge for edge in graph.edges if edge.relation == "transmits")
+    assert next(node for node in graph.nodes if node.id == transmitted.target).kind == (
+        "message_object_expression"
+    )
+    assert graph.to_json() == build_bus_graph(calls, {"app.c": "Payload"}).to_json()
+    assert not build_bus_graph(calls, {}).edges
