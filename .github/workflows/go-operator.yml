@@ -21,5 +21,7 @@ jobs:
           go-version-file: cluster/fuse-operator/go.mod
           cache: false
       - run: go mod tidy
+      - run: gofmt -w cmd internal
+      - run: git diff --exit-code -- go.mod go.sum cmd internal
       - run: go test ./...
       - run: go vet ./...
