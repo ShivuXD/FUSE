@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "vigil-fuse"
 dynamic = ["version"]
-description = "FUSE, the Firmware & Unified Security Engine, a VIGIL Project"
+description = "FUSE, the Firmware & Unified Security Engine, by Team VIGIL"
 authors = [{ name = "Shantanu" }]
 readme = "README.md"
 requires-python = ">=3.11"
@@ -49,9 +49,9 @@ dev = [
 
 [project.urls]
 Homepage = "https://vigil-fuse.vercel.app/"
-Documentation = "https://github.com/VIGIL-IoT/VIGIL-FUSE/blob/main/docs/usage.md"
-Repository = "https://github.com/VIGIL-IoT/VIGIL-FUSE"
-Issues = "https://github.com/VIGIL-IoT/VIGIL-FUSE/issues"
+Documentation = "https://github.com/ShivuXD/fuse/blob/main/docs/usage.md"
+Repository = "https://github.com/ShivuXD/fuse"
+Issues = "https://github.com/ShivuXD/fuse/issues"
 
 [project.scripts]
 vigil-fuse = "vigil_fuse.cli:main"

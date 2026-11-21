@@ -4,7 +4,7 @@ The static landing page lives in [site/](../site/) and uses plain HTML, CSS, and
 
 ## Deploy to Vercel
 
-Import `VIGIL-IoT/VIGIL-FUSE` from GitHub and use these project settings:
+Import `ShivuXD/fuse` from GitHub and use these project settings:
 
 | Setting | Value |
 | --- | --- |

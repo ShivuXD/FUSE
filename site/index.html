@@ -4,11 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#0d1111">
-    <meta name="description" content="FUSE is a VIGIL Project for CLI-first embedded security inspection. Scan source, configuration and firmware artifacts with evidence-led findings.">
+    <meta name="description" content="FUSE is a standalone CLI-first embedded security inspection project by Team VIGIL. Review source, configuration and firmware artifacts with evidence-led findings.">
     <meta name="author" content="Shantanu">
     <meta property="og:type" content="website">
     <meta property="og:title" content="FUSE - Firmware &amp; Unified Security Engine">
-    <meta property="og:description" content="Inspect embedded projects with evidence-led security findings from a CLI-first VIGIL Project.">
+    <meta property="og:description" content="Inspect embedded projects with evidence-led security findings from FUSE, by Team VIGIL.">
     <title>FUSE - Firmware &amp; Unified Security Engine</title>
     <link rel="icon" href="assets/fuse-mark.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,14 +30,14 @@
     <a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header">
       <div class="brand-cluster">
-        <a class="brand-lockup" href="#top" aria-label="FUSE, Firmware and Unified Security Engine, a VIGIL Project">
+        <a class="brand-lockup" href="#top" aria-label="FUSE, Firmware and Unified Security Engine, by Team VIGIL">
           <img class="brand-mark" src="assets/fuse-mark.svg" alt="">
           <span class="brand-copy">
             <span class="brand-name">FUSE</span>
             <span class="brand-subtitle">Firmware &amp; Unified Security Engine</span>
           </span>
         </a>
-        <p class="project-tag">A <a class="vigil-link" href="https://github.com/VIGIL-IoT">VIGIL</a> Project</p>
+        <p class="project-tag">Team VIGIL</p>
       </div>
       <nav class="main-nav" id="main-nav" aria-label="Main navigation">
         <a href="#workflow">Workflow</a>
@@ -188,13 +188,13 @@
         <nav class="scan-report-actions" aria-label="Additional scan evidence">
           <a href="regression/">Review rule regression</a>
           <a href="fresh-validation/">Review transfer cohort</a>
-          <a href="https://vigil-iot.github.io/VIGIL-FUSE/" target="_blank" rel="noreferrer">Open the 14 November evaluation report ↗</a>
+          <a href="https://github.com/ShivuXD/fuse/blob/main/reports/repository-scans/multi-repository-2026-11-14/publication/report.pdf" target="_blank" rel="noreferrer">Open the 14 November evaluation report ↗</a>
         </nav>
         <article class="independent-transfer reveal" aria-labelledby="independent-transfer-title">
           <div class="independent-transfer-copy">
             <h3 id="independent-transfer-title">A new four-repository check.</h3>
             <p>FUSE scanned 3,425 files across littlefs, LVGL, FreeRTOS-Plus-TCP, and ESP-Matter. Sixteen informational GitHub Actions branch-reference signals appeared in LVGL and FreeRTOS-Plus-TCP. LVGL is partial because three selected files exceeded the scan size limit. No native rule signal appeared in these scopes.</p>
-            <a href="https://github.com/VIGIL-IoT/VIGIL-FUSE/blob/main/reports/repository-scans/independent-2026-11-02/README.md" target="_blank" rel="noreferrer">Read scope, triage, and limits ↗</a>
+            <a href="https://github.com/ShivuXD/fuse/blob/main/reports/repository-scans/independent-2026-11-02/README.md" target="_blank" rel="noreferrer">Read scope, triage, and limits ↗</a>
           </div>
           <figure class="independent-transfer-chart">
             <figcaption>Informational FUSE-GHA-002 matches</figcaption>
@@ -208,7 +208,7 @@
           <div class="independent-transfer-copy">
             <h3 id="release-transfer-title">FUSE 0.3.0 release replay.</h3>
             <p>FUSE 0.3.0 scanned 4,347 files across ArduPilot, RT-Thread, OpenBMC, and Meshtastic, producing three static signals: two credential-like defaults and one TLS verification bypass. One RT-Thread file exceeded the scan size limit, and Meshtastic's PlatformIO context is partial. Manual review kept all three as review leads, not confirmed vulnerabilities.</p>
-            <a href="https://github.com/VIGIL-IoT/VIGIL-FUSE/blob/main/reports/repository-scans/release-0.3.0-transfer-2026-11-12/README.md" target="_blank" rel="noreferrer">Read report, source revisions, and limits ↗</a>
+            <a href="https://github.com/ShivuXD/fuse/blob/main/reports/repository-scans/release-0.3.0-transfer-2026-11-12/README.md" target="_blank" rel="noreferrer">Read report, source revisions, and limits ↗</a>
           </div>
           <figure class="independent-transfer-chart release-transfer-chart">
             <figcaption>Raw static signals by project</figcaption>
@@ -274,7 +274,7 @@
                 <pre><code>pipx install vigil-fuse==0.4.0</code></pre>
                 <button type="button" class="copy-button" aria-label="Copy the pipx install command">Copy</button>
               </div>
-              <p class="install-links"><a href="https://pypi.org/project/vigil-fuse/" target="_blank" rel="noreferrer">PyPI package page ↗</a><a href="https://github.com/VIGIL-IoT/VIGIL-FUSE/blob/main/docs/usage.md" target="_blank" rel="noreferrer">Full installation and usage guide ↗</a></p>
+              <p class="install-links"><a href="https://pypi.org/project/vigil-fuse/" target="_blank" rel="noreferrer">PyPI package page ↗</a><a href="https://github.com/ShivuXD/fuse/blob/main/docs/usage.md" target="_blank" rel="noreferrer">Full installation and usage guide ↗</a></p>
               <p class="command-label command-label-scan">Preview from the project directory</p>
               <div class="copy-command-row">
                 <pre><code>vigil-fuse scan . --plan</code></pre>
@@ -329,8 +329,8 @@ python -m pip install vigil-fuse==0.4.0</code></pre>
               <details>
                 <summary>Install from source for development</summary>
                 <div class="copy-command-row">
-                  <pre><code>git clone https://github.com/VIGIL-IoT/VIGIL-FUSE.git
-cd VIGIL-FUSE
+                  <pre><code>git clone https://github.com/ShivuXD/fuse.git
+cd fuse
 python -m pip install -e ".[dev]"</code></pre>
                 </div>
               </details>
@@ -348,7 +348,7 @@ vigil-fuse scan . --profile embedded-linux --plan</code></pre>
               <button type="button" class="copy-button" aria-label="Copy the embedded profile commands">Copy</button>
             </div>
           </div>
-          <p class="install-reference-note">Need optional analyzers, baseline commands, JSON formats, or hardware and firmware input details? Read the <a href="https://github.com/VIGIL-IoT/VIGIL-FUSE/blob/main/docs/usage.md" target="_blank" rel="noreferrer">complete FUSE usage guide ↗</a>. Use <code>vigil-fuse doctor</code> to check the CLI and optional tools.</p>
+          <p class="install-reference-note">Need optional analyzers, baseline commands, JSON formats, or hardware and firmware input details? Read the <a href="https://github.com/ShivuXD/fuse/blob/main/docs/usage.md" target="_blank" rel="noreferrer">complete FUSE usage guide ↗</a>. Use <code>vigil-fuse doctor</code> to check the CLI and optional tools.</p>
         </div>
       </section>
 
@@ -416,9 +416,9 @@ vigil-fuse scan . --profile embedded-linux --plan</code></pre>
 
       <section class="research page-wrap" id="research" aria-labelledby="research-title">
         <div class="research-intro reveal">
-          <h2 id="research-title">A <a class="vigil-link" href="https://github.com/VIGIL-IoT">VIGIL</a> Project.</h2>
-          <p class="initiative-name"><strong><a class="vigil-link" href="https://github.com/VIGIL-IoT">VIGIL-IoT</a></strong> means Vulnerability Intelligence &amp; Guarding for IoT Layers.</p>
-          <p>FUSE is its Firmware &amp; Unified Security Engine: an analysis and inspection module for embedded software and firmware artifacts.</p>
+          <h2 id="research-title">FUSE by Team VIGIL.</h2>
+          <p class="initiative-name"><strong>FUSE</strong> is a standalone embedded security analysis project.</p>
+          <p>Team VIGIL builds practical tools for inspecting embedded software, configurations, dependencies, hardware files, and firmware artifacts.</p>
         </div>
         <div class="validation-panel reveal" aria-labelledby="validation-title">
           <h3 id="validation-title">Fixture coverage.</h3>
@@ -442,15 +442,15 @@ vigil-fuse scan . --profile embedded-linux --plan</code></pre>
       <div class="footer-inner page-wrap">
         <a class="footer-wordmark reveal" href="#top">FUSE</a>
         <div class="footer-bottom">
-          <div class="footer-identity"><p>Firmware &amp; Unified Security Engine</p><p>A <a class="vigil-link" href="https://github.com/VIGIL-IoT">VIGIL</a> Project</p><p>Vulnerability Intelligence &amp; Guarding for IoT Layers</p></div>
+          <div class="footer-identity"><p>Firmware &amp; Unified Security Engine</p><p>Standalone project by Team VIGIL</p><p>Embedded software and firmware security inspection</p></div>
           <nav class="footer-links" aria-label="Footer navigation">
             <a href="#workflow">Workflow</a><a href="#architecture">Architecture</a><a href="#rules">Rules</a><a href="#results">Results</a><a href="#coverage">Coverage</a>
             <a href="https://pypi.org/project/vigil-fuse/" target="_blank" rel="noreferrer">PyPI <span aria-hidden="true">↗</span></a>
-            <a href="https://github.com/VIGIL-IoT/VIGIL-FUSE" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+            <a href="https://github.com/ShivuXD/fuse" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
           </nav>
           <a class="back-top" href="#top">Back to top ↑</a>
         </div>
-        <p class="footer-legal">FUSE is a CLI-first <a class="vigil-link" href="https://github.com/VIGIL-IoT">VIGIL Project</a> created and maintained by Shantanu. Findings describe observed signals and their limits.</p>
+        <p class="footer-legal">FUSE is a standalone CLI-first project by Team VIGIL. Findings describe observed signals and their limits.</p>
       </div>
     </footer>
   </body>

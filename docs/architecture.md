@@ -1,6 +1,6 @@
 # FUSE architecture
 
-FUSE is a [VIGIL](https://github.com/VIGIL-IoT) Project in the [VIGIL-IoT suite](https://github.com/VIGIL-IoT). The initial implementation is a small Python package with a CLI boundary and no runtime dependencies.
+FUSE is a standalone embedded security analysis project by Team VIGIL. The implementation is a small Python package with a CLI boundary and no runtime dependencies.
 
 ## Current system architecture
 
@@ -176,4 +176,4 @@ flowchart LR
 
 FUSE examines files and metadata. It has no hardware connection and does not verify that a candidate net is routed, populated, accessible, or enabled on a physical device.
 
-FUSE and SPECTRA-32 have complementary roles in the [VIGIL-IoT suite](https://github.com/VIGIL-IoT): FUSE inspects candidate weaknesses, while SPECTRA-32 can reproduce selected cases in a controlled lab and measure mitigation overhead.
+FUSE reports static review candidates with evidence and scope limits. Confirming a candidate requires validation in the relevant target context.
