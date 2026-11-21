@@ -97,7 +97,7 @@ class InteractiveTests(unittest.TestCase):
             text = output.getvalue()
             self.assertIn("Reconnoitering project files", text)
             self.assertIn("1 findings to review", text)
-            self.assertIn(str(target / ".fuse-results" / "findings.txt"), text)
+            self.assertIn(str(target.resolve() / ".fuse-results" / "findings.txt"), text)
             self.assertNotIn("Potential impact:", text)
             self.assertTrue((target / ".fuse-results" / "findings.json").is_file())
 
