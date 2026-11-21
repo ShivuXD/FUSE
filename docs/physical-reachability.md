@@ -26,3 +26,12 @@ missing references, unnamed or duplicate nets, and repeated pins make the result
 partial. Connector classification is a candidate based on reference or component
 description, not proof of an accessible connector. A netlist records design
 connectivity; it does not establish PCB routing or the state of a deployed board.
+
+`correlate_physical_evidence` accepts a finding ID, resource ID, device-tree path,
+component reference, pin numbers and an explicit description of the source of that
+mapping. It records candidate connector paths through the supplied topology. The
+caller-provided mapping is not validated or inferred from pinctrl. Results are
+`PARTIAL` when a unique node and topology are present, or `UNKNOWN` when either is
+missing or ambiguous. Confidence is low; literal device status is provided only as
+observed text. At most 256 pins and 10,000 connection records are processed per
+binding. No finding severity, applicability or validation status is changed.
