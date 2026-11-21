@@ -1,0 +1,1 @@
+client = requests.get("https://device.example", verify=False)

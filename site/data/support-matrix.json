@@ -1,0 +1,254 @@
+{
+  "schema_version": "1.0",
+  "labels": {
+    "detected": "FUSE recognizes the input or artifact type, but this alone means no security analyzer completed.",
+    "basic": "Documented native checks ran over selected file types without resolving the effective product build.",
+    "supported": "The named input, tool versions, operating systems, and positive, negative, and boundary cases have regression coverage.",
+    "partial": "Some useful stages completed while an applicable stage was skipped, unavailable, or failed.",
+    "experimental": "An opt-in adapter is available, but its scope or output contract is not stable enough for a broad support claim.",
+    "planned": "No analysis capability is available yet.",
+    "unsupported": "FUSE did not select a security analyzer for this input type."
+  },
+  "capabilities": [
+    {
+      "id": "source.generic",
+      "input": "Common source and configuration files",
+      "profile": "generic",
+      "label": "basic",
+      "scope": "Seven native rules over selected source and configuration files.",
+      "limitations": [
+        "No build resolution",
+        "No runtime or device validation"
+      ]
+    },
+    {
+      "id": "source.esp-idf",
+      "input": "ESP-IDF source and configuration files",
+      "profile": "esp-idf",
+      "label": "basic",
+      "scope": "Generic native rules plus explicit boot-image validation setting checks.",
+      "limitations": [
+        "Source-only settings are conditional",
+        "Generated build inspection requires explicit --build-dir",
+        "Does not prove the selected build is released"
+      ]
+    },
+    {
+      "id": "source.zephyr",
+      "input": "Zephyr source and configuration files",
+      "profile": "zephyr",
+      "label": "basic",
+      "scope": "Generic native rules over the expanded Zephyr file profile.",
+      "limitations": [
+        "Generated build metadata requires explicit --build-dir",
+        "Does not run Zephyr hardenconfig",
+        "Does not prove the selected build is released"
+      ]
+    },
+    {
+      "id": "build-context.esp-idf",
+      "input": "User-selected ESP-IDF build directory",
+      "profile": "esp-idf",
+      "label": "experimental",
+      "scope": "Reads bounded generated sdkconfig metadata, records selected sdkconfig and defaults provenance, and applies initial boot-validation checks to the selected configuration.",
+      "limitations": [
+        "Does not invoke the build system",
+        "Does not prove that the selected build is shipped",
+        "Does not evaluate Kconfig dependencies"
+      ]
+    },
+    {
+      "id": "build-context.zephyr",
+      "input": "User-selected Zephyr build directory",
+      "profile": "zephyr",
+      "label": "experimental",
+      "scope": "Reads bounded generated Kconfig metadata and can import the selected build's JSON report from Zephyr hardenconfig.",
+      "limitations": [
+        "Does not invoke west or the build system",
+        "Hardening results require an explicit report produced by Zephyr",
+        "Does not prove that the selected build is shipped"
+      ]
+    },
+    {
+      "id": "build-context.platformio",
+      "input": "platformio.ini project configuration",
+      "profile": null,
+      "label": "experimental",
+      "scope": "Merges a bounded extra_configs graph and inventories declared environments, boards, platforms, frameworks, source directories, source-filter declarations, and selected defaults without invoking PlatformIO.",
+      "limitations": [
+        "Does not evaluate variable substitutions, project scripts, or source filters into compiled files",
+        "Missing or unsafe includes produce partial coverage",
+        "Does not build or test any environment",
+        "Does not compare environment-specific compiled output"
+      ]
+    },
+    {
+      "id": "inventory.firmware-candidates",
+      "input": "Project tree and common build-output directories",
+      "profile": null,
+      "label": "detected",
+      "scope": "Records candidate paths, extensions, and sizes without opening binary contents.",
+      "limitations": [
+        "An extension does not prove a file is firmware",
+        "No digest or format validation is performed",
+        "The listed path set is bounded"
+      ]
+    },
+    {
+      "id": "ci.github-actions-static",
+      "input": "GitHub Actions workflow YAML",
+      "profile": null,
+      "label": "basic",
+      "scope": "Checks exact workflow-level and job-level write-all permission scalars, counts recognized non-SHA action references, and reports only obvious floating branch refs as findings.",
+      "limitations": [
+        "Only simple write-all scalar forms are checked",
+        "Version-tag refs are counted but are not findings",
+        "Not a general YAML, expression, permission-inheritance, or event-taint analyzer",
+        "Findings describe workflow supply-chain candidates, not device vulnerabilities"
+      ]
+    },
+    {
+      "id": "hardware.kicad-netlist-debug-candidates",
+      "input": "Selected or uniquely detected KiCad XML netlist",
+      "profile": null,
+      "label": "experimental",
+      "scope": "Reports named debug/programming nets connected to connector-designator or connector-like components.",
+      "limitations": [
+        "Does not validate PCB routing, physical access, population state, or debug-port configuration",
+        "Does not export a netlist or invoke KiCad"
+      ]
+    },
+    {
+      "id": "inventory.compilation-database",
+      "input": "compile_commands.json",
+      "profile": null,
+      "label": "detected",
+      "scope": "Indexes translation units and compiler families as bounded metadata.",
+      "limitations": [
+        "Compiler commands and project code are never executed",
+        "No compiler or semantic C/C++ analyzer is run"
+      ]
+    },
+    {
+      "id": "inventory.esp-idf-lock",
+      "input": "ESP-IDF dependencies.lock",
+      "profile": "esp-idf",
+      "label": "experimental",
+      "scope": "Optional, bounded inventory of resolved component versions and dependency edges.",
+      "limitations": [
+        "Requires the optional PyYAML extra",
+        "Does not prove a resolved component was built or shipped",
+        "Manifest freshness is not verified"
+      ]
+    },
+    {
+      "id": "source.embedded-linux",
+      "input": "Embedded Linux source, service, and recipe files",
+      "profile": "embedded-linux",
+      "label": "basic",
+      "scope": "Generic native rules over the expanded embedded Linux file profile.",
+      "limitations": [
+        "Does not resolve the selected image build or installed package set"
+      ]
+    },
+    {
+      "id": "inventory.sbom-detected",
+      "input": "CycloneDX or SPDX SBOM",
+      "profile": null,
+      "label": "detected",
+      "scope": "Recognizes the supplied inventory and records it as the analysis target.",
+      "limitations": [
+        "Advisory matching requires OSV-Scanner"
+      ]
+    },
+    {
+      "id": "inventory.sbom-advisories",
+      "input": "CycloneDX or SPDX SBOM with advisory lookup",
+      "profile": null,
+      "label": "basic",
+      "scope": "Matches identified package versions to OSV advisories.",
+      "limitations": [
+        "Does not prove package inclusion in a shipped device or vulnerable code reachability"
+      ]
+    },
+    {
+      "id": "firmware.signature-identification",
+      "input": "Single firmware image with Binwalk",
+      "profile": null,
+      "label": "experimental",
+      "scope": "Optional signature identification only.",
+      "limitations": [
+        "No extraction, filesystem analysis, or execution",
+        "Default 512 MiB input cap is configurable up to 2 GiB"
+      ]
+    },
+    {
+      "id": "history.git-secrets",
+      "input": "Git commits reachable from HEAD",
+      "profile": null,
+      "label": "experimental",
+      "scope": "Optional Gitleaks history scan with redacted finding metadata.",
+      "limitations": [
+        "Requires Git and Gitleaks",
+        "Shallow history is partial",
+        "Does not validate whether a matched credential is still usable"
+      ]
+    },
+    {
+      "id": "hardware.presence-inventory",
+      "input": "Schematics, PCB, fabrication, BOM, CAD, netlist, and HDL files",
+      "profile": null,
+      "label": "detected",
+      "scope": "Filename-based presence inventory with category counts and paths.",
+      "limitations": [
+        "Presence-only filename detection does not assess hardware security",
+        "KiCad netlist parsing is a separate candidate analyzer",
+        "Detailed BOM parsing requires the explicit hardware.hbom-import capability"
+      ]
+    },
+    {
+      "id": "hardware.hbom-import",
+      "input": "Explicit CSV or TSV hardware BOM",
+      "profile": null,
+      "label": "experimental",
+      "scope": "Imports allow-listed component columns and exports a CycloneDX 1.6 hardware inventory.",
+      "limitations": [
+        "Does not validate part specifications or assess circuit security",
+        "Import is limited to UTF-8 CSV and TSV"
+      ]
+    },
+    {
+      "id": "product.vex-context",
+      "input": "CycloneDX VEX 1.5 or 1.6",
+      "profile": null,
+      "label": "experimental",
+      "scope": "Attaches reviewed status to exact product, package PURL, and advisory matches while retaining findings.",
+      "limitations": [
+        "VEX signatures are not authenticated",
+        "Imported review does not change finding severity or fail thresholds",
+        "Only exact PURL and advisory matches are applied"
+      ]
+    },
+    {
+      "id": "supply-chain.provenance-subject",
+      "input": "In-toto SLSA provenance statement and firmware image",
+      "profile": null,
+      "label": "experimental",
+      "scope": "Compares a supplied subject SHA-256 with the selected firmware image and records claimed builder metadata.",
+      "limitations": [
+        "Signature and builder trust are not verified",
+        "Does not validate build policy or provenance completeness"
+      ]
+    },
+    {
+      "id": "runtime.lab-validation",
+      "input": "Physical device or controlled lab evidence",
+      "profile": null,
+      "label": "planned",
+      "scope": "Physical device testing is outside the current FUSE workflow.",
+      "limitations": [
+        "Not performed by the current FUSE scanner"
+      ]
+    }
+  ]
+}

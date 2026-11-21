@@ -1,0 +1,69 @@
+from __future__ import annotations
+
+import json
+import os
+from pathlib import Path
+
+from jsonschema import Draft202012Validator
+import psutil
+
+from scripts.benchmark_process import sample_process_tree_rss
+from scripts.benchmark_scan import create_synthetic_project, run_benchmark
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_process_tree_sampler_includes_the_root_process() -> None:
+    current_process_rss = psutil.Process().memory_info().rss
+
+    sampled_rss, inaccessible_samples = sample_process_tree_rss(os.getpid(), psutil)
+
+    assert sampled_rss >= current_process_rss
+    assert inaccessible_samples == 0
+
+
+def test_synthetic_project_generation_is_deterministic(tmp_path) -> None:
+    first = create_synthetic_project(tmp_path / "first", file_count=8)
+    second = create_synthetic_project(tmp_path / "second", file_count=8)
+
+    assert first.file_count == second.file_count == 8
+    assert first.source_bytes == second.source_bytes
+    assert first.sha256 == second.sha256
+    assert sorted(path.name for path in (tmp_path / "first").iterdir()) == [
+        f"module_{index:06d}.c" for index in range(8)
+    ]
+
+
+def test_scan_benchmark_reports_complete_path_free_evidence() -> None:
+    report = run_benchmark(
+        file_count=8,
+        warmups=0,
+        repetitions=1,
+        sample_interval_ms=5,
+        timeout_seconds=45,
+    )
+
+    measurements = report["measurements"]
+    assert report["benchmark"] == "fuse-synthetic-project-scan"
+    assert report["input"]["files"] == 8
+    assert report["environment"]["psutil_version"]
+    assert "--no-network" in report["configuration"]["scanner_options"]
+    assert measurements["files_scanned"] == 8
+    assert measurements["source_bytes_read"] == report["input"]["source_bytes"]
+    assert measurements["finding_count"] == 0
+    assert measurements["completed_native_rules"]
+    assert measurements["wall_time_seconds"]["median"] > 0
+    assert measurements["sampled_process_tree_rss_bytes"]["maximum"] > 0
+    assert measurements["sampled_process_tree_rss_bytes"]["sampling_complete"] is True
+
+    schema = json.loads(
+        (ROOT / "reports" / "benchmark" / "scan-performance.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    Draft202012Validator.check_schema(schema)
+    Draft202012Validator(schema).validate(report)
+
+    serialized = json.dumps(report)
+    assert "synthetic-embedded-project" not in serialized
+    assert str(__file__) not in serialized

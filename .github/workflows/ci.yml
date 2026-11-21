@@ -1,0 +1,203 @@
+name: FUSE CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Tests on ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python-version: "3.11"
+          - os: ubuntu-latest
+            python-version: "3.12"
+          - os: ubuntu-latest
+            python-version: "3.13"
+          - os: ubuntu-latest
+            python-version: "3.14"
+          - os: windows-latest
+            python-version: "3.11"
+          - os: macos-latest
+            python-version: "3.11"
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test runner and FUSE
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install ".[test]"
+      - name: Run test suite
+        run: python -m pytest -q
+      - name: Check native rule fixture benchmark labels
+        run: python scripts/evaluate_rule_benchmark.py --check
+
+  quality:
+    name: Quality, self-scan, and coverage report
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install development tools and FUSE
+        run: python -m pip install ".[dev]"
+      - name: Run Ruff
+        run: python -m ruff check src tests scripts
+      - name: Run strict Mypy checks
+        run: python -m mypy
+      - name: Check tracked files and Git history for personal machine paths
+        run: python scripts/check_repository_paths.py
+      - name: Validate local documentation links and Mermaid blocks
+        run: python scripts/validate_docs.py
+      - name: Render Mermaid documentation diagrams
+        run: python scripts/render_mermaid_docs.py --timeout-seconds 300
+      - name: Check Python formatting
+        run: python -m ruff format --check src tests scripts
+      - name: Run FUSE security self-scan
+        run: |
+          vigil-fuse scan . --no-network --no-sbom --no-vulnerabilities --no-firmware --no-git-history --format json --output "$RUNNER_TEMP/fuse-self-scan.json"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          report_path = Path(os.environ["RUNNER_TEMP"]) / "fuse-self-scan.json"
+          report = json.loads(report_path.read_text(encoding="utf-8"))
+          assert report["summary"]["analysis_performed"] is True
+          assert report["coverage"]["discovery_complete"] is True
+          assert not any(
+              finding["severity"] in {"high", "critical"}
+              for finding in report["findings"]
+          )
+          print(
+              f"FUSE self-scan complete: {report['summary']['files_scanned']} files, "
+              f"{report['summary']['finding_count']} findings"
+          )
+          PY
+      - name: Smoke-check synthetic scan benchmark
+        run: python scripts/benchmark_scan.py --files 16 --warmups 0 --repetitions 1 --output "$RUNNER_TEMP/fuse-scan-performance.json"
+      - name: Run tests with branch coverage
+        run: |
+          python -m coverage run -m pytest -q
+          python -m coverage report -m --fail-under=75
+
+  package-smoke:
+    name: Build and install package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Build wheel and source distribution
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+          python -m twine check dist/*
+      - name: Install wheel in a clean virtual environment and exercise CLI
+        run: |
+          python -m venv .venv-smoke
+          .venv-smoke/bin/python -m pip install --no-deps dist/*.whl
+          .venv-smoke/bin/vigil-fuse --version
+          .venv-smoke/bin/vigil-fuse doctor
+          .venv-smoke/bin/vigil-fuse scan --help
+          .venv-smoke/bin/python - <<'PY'
+          import pathlib
+          import vigil_fuse
+
+          package = pathlib.Path(vigil_fuse.__file__).parent
+          assert (package / "support-matrix.json").is_file()
+          assert list((package / "schemas").glob("*.json"))
+          assert (package / "schemas/ghidra-analysis.schema.json").is_file()
+          assert (package / "resources/ghidra/FuseExport.java").is_file()
+          PY
+          python - <<'PY'
+          import json
+          import pathlib
+          import subprocess
+          import tempfile
+
+          cli = pathlib.Path(".venv-smoke/bin/vigil-fuse").resolve()
+
+          with tempfile.TemporaryDirectory() as temporary:
+              target = pathlib.Path(temporary) / "embedded-project"
+              target.mkdir()
+              (target / "main.c").write_text(
+                  'const char *endpoint = "http://device.local";\n',
+                  encoding="utf-8",
+              )
+              report_path = pathlib.Path(temporary) / "findings.json"
+              subprocess.run(
+                  [
+                      str(cli),
+                      "scan",
+                      str(target),
+                      "--format",
+                      "json",
+                      "--output",
+                      str(report_path),
+                  ],
+                  check=True,
+                  capture_output=True,
+                  text=True,
+              )
+              report = json.loads(report_path.read_text(encoding="utf-8"))
+              assert report["tool"]["name"] == "FUSE"
+              assert report["summary"]["analysis_performed"] is True
+              assert any(finding["rule_id"] == "FUSE004" for finding in report["findings"])
+          PY
+
+  analyzer-sandbox:
+    name: Docker analyzer sandbox integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - name: Install FUSE test dependencies
+        run: python -m pip install ".[test]"
+      - name: Build the pinned local analyzer fixture
+        run: |
+          docker info
+          docker build --tag fuse-analyzer-sandbox-fixture:ci tests/fixtures/analyzer-sandbox
+          image_id="$(docker image inspect --format '{{.Id}}' fuse-analyzer-sandbox-fixture:ci)"
+          echo "FUSE_SANDBOX_SMOKE_IMAGE=$image_id" >> "$GITHUB_ENV"
+      - name: Run the FUSE Docker sandbox integration check
+        run: python -m pytest -q tests/test_analyzer_sandbox_docker.py

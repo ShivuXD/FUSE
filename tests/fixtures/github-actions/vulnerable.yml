@@ -1,0 +1,9 @@
+name: review
+on: [pull_request]
+permissions: write-all
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - uses: actions/checkout@main

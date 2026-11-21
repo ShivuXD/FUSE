@@ -1,0 +1,103 @@
+[build-system]
+requires = ["setuptools>=77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vigil-fuse"
+dynamic = ["version"]
+description = "FUSE, the Firmware & Unified Security Engine, a VIGIL Project"
+authors = [{ name = "Shantanu" }]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+license = "LicenseRef-VIGIL-FUSE-Restricted-Use-1.2"
+license-files = ["LICENSE"]
+keywords = ["embedded security", "firmware analysis", "IoT", "static analysis"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Information Technology",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Security",
+  "Topic :: Software Development :: Quality Assurance",
+]
+
+[project.optional-dependencies]
+esp-idf = ["PyYAML>=6,<7"]
+test = ["jsonschema>=4.23,<5", "psutil>=7.2,<8", "pytest>=9.0.3,<10", "PyYAML>=6,<7"]
+dev = [
+  "build>=1.2,<2",
+  "coverage[toml]>=7.6,<8",
+  "jsonschema>=4.23,<5",
+  "mypy>=2.4.1,<3",
+  "pip-audit>=2.10,<3",
+  "psutil>=7.2,<8",
+  "PyYAML>=6,<7",
+  "pytest>=9.0.3,<10",
+  "pytest-cov>=6,<8",
+  "ruff>=0.11,<1",
+  "twine>=6,<7",
+  "types-psutil>=7.2,<8",
+  "types-PyYAML>=6,<7",
+]
+
+[project.urls]
+Homepage = "https://vigil-fuse.vercel.app/"
+Documentation = "https://github.com/VIGIL-IoT/VIGIL-FUSE/blob/main/docs/usage.md"
+Repository = "https://github.com/VIGIL-IoT/VIGIL-FUSE"
+Issues = "https://github.com/VIGIL-IoT/VIGIL-FUSE/issues"
+
+[project.scripts]
+vigil-fuse = "vigil_fuse.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "vigil_fuse.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+vigil_fuse = ["schemas/*.json", "resources/ghidra/*.java", "support-matrix.json"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+
+[tool.mypy]
+python_version = "3.11"
+files = [
+  "src/vigil_fuse",
+  "scripts/benchmark_scan.py",
+  "scripts/benchmark_repository_cohort.py",
+  "scripts/prepare_repository_benchmark_cohort.py",
+  "scripts/benchmark_process.py",
+  "scripts/build_repository_scan_dashboard.py",
+  "scripts/install_ci_analyzers.py",
+  "scripts/verify_binwalk_adapter.py",
+  "scripts/verify_esp_idf_build_context.py",
+  "scripts/evaluate_sard_fuse001_cohort.py",
+  "scripts/evaluate_sard_fuse001_catalogue.py",
+  "scripts/compare_repository_scan_snapshots.py",
+  "scripts/benchmark_ghidra_adapter.py",
+]
+mypy_path = "src"
+explicit_package_bases = true
+strict = true
+
+[tool.coverage.run]
+branch = true
+relative_files = true
+source = ["vigil_fuse"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
