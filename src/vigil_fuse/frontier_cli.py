@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 from pathlib import Path
 import sys
 
 from .build_context import _read_bounded, _select_project_file
 from .digital_twin import synthesize_digital_twin
+from .device_tree import MAX_DTS_BYTES, parse_device_tree
 from .flight_bus import (
     MAX_BUS_FILE_BYTES,
     MAX_BUS_FILES,
@@ -16,7 +18,9 @@ from .flight_bus import (
     extract_bus_calls,
 )
 from .hardware_bom import inspect_hardware_bom
+from .hardware_netlist import read_netlist_topology
 from .json_limits import bounded_json
+from .physical_reachability import ResourceBinding, correlate_physical_evidence
 from .seu_analysis import MAX_SEU_BYTES, inspect_critical_state
 from .svd import MAX_SVD_BYTES, parse_svd
 from .text_safety import safe_terminal_text
@@ -35,10 +39,38 @@ def register_commands(commands: argparse._SubParsersAction[argparse.ArgumentPars
     seu = commands.add_parser("seu", help="observe selected resilience indicators")
     seu.add_argument("target", type=Path, help="root containing the selected C file")
     seu.add_argument("--source", required=True, help="local C source file inside target")
+    physical = commands.add_parser("physical-reachability", help="correlate explicit pin evidence")
+    physical.add_argument("target", type=Path, help="root containing device tree and netlist")
+    physical.add_argument("--dts", required=True, help="local DTS file inside target")
+    physical.add_argument("--netlist", required=True, help="local KiCad XML netlist inside target")
+    physical.add_argument("--finding", required=True, help="finding identifier")
+    physical.add_argument("--resource", required=True, help="resource identifier")
+    physical.add_argument("--node", required=True, help="literal device-tree node path")
+    physical.add_argument("--component", required=True, help="MCU component reference")
+    physical.add_argument("--pin", action="append", required=True, help="mapped MCU pin; repeatable")
+    physical.add_argument("--mapping-evidence", required=True, help="source of the supplied pin mapping")
 
 
 def run_command(args: argparse.Namespace) -> int:
     try:
+        if args.command == "physical-reachability":
+            path, display = _select_project_file(args.target, args.dts, "--dts")
+            data = _read_bounded(path, MAX_DTS_BYTES, "DTS")
+            tree = parse_device_tree(data)
+            topology = read_netlist_topology(args.target, args.netlist)
+            binding = ResourceBinding(args.finding, args.resource, args.node, args.component,
+                                      tuple(args.pin), args.mapping_evidence)
+            evidence = correlate_physical_evidence(binding, tree, topology)
+            payload = {
+                "status": evidence.physical_status,
+                "device_tree": {"path": display, "sha256": hashlib.sha256(data).hexdigest(),
+                                "status": tree.status, "limitations": tree.limitations},
+                "netlist": {"path": topology.path, "sha256": topology.sha256,
+                            "status": topology.status, "limitations": topology.limitations},
+                "evidence": evidence,
+            }
+            sys.stdout.write(bounded_json(payload, 4 * 1024 * 1024, indent=2))
+            return 1
         if args.command == "flight-bus":
             if len(args.source) > MAX_BUS_FILES:
                 raise ValueError("Software-bus file limit exceeded")

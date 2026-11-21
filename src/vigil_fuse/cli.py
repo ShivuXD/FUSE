@@ -1471,7 +1471,7 @@ def main(
     if args.command is None:
         parser.print_help()
         return 0
-    if args.command in {"digital-twin", "flight-bus", "seu"}:
+    if args.command in {"digital-twin", "flight-bus", "seu", "physical-reachability"}:
         return run_frontier_command(args)
     if args.command == "inspect":
         try:

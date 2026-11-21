@@ -15,9 +15,9 @@ interpret an absent node or property as proof that a device or physical path is
 absent. In particular, this parser alone does not establish physical reachability,
 exploitability, severity or hardware behavior.
 
-This is an internal building block; it is not yet integrated into scanning or a CLI
-command. Use a trusted, separately built device-tree artifact and board-specific
-documentation for decisions until those later stages exist and are validated.
+This parser is not yet integrated into the scan stage. Use a trusted, separately
+built device-tree artifact and board-specific documentation for decisions until
+the later stages exist and are validated.
 
 The internal `read_netlist_topology` API extends the existing KiCad XML reader with
 net names, component references and pin numbers. It uses the same bounded XML
@@ -35,3 +35,15 @@ caller-provided mapping is not validated or inferred from pinctrl. Results are
 missing or ambiguous. Confidence is low; literal device status is provided only as
 observed text. At most 256 pins and 10,000 connection records are processed per
 binding. No finding severity, applicability or validation status is changed.
+
+The command requires an explicit mapping and its evidence:
+
+```sh
+vigil-fuse physical-reachability ./project --dts board.dts --netlist board.net \
+  --finding FUSE-1 --resource UART2 --node /soc/serial@40004400 \
+  --component U1 --pin 42 --mapping-evidence "board pin map"
+```
+
+Input files must be inside the target. JSON includes the input hashes, input
+statuses and limitations. Exit code `1` means partial or unknown evidence; `2`
+means invalid input. No automatic finding-to-driver or pinctrl resolution occurs.
