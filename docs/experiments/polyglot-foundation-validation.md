@@ -1,5 +1,13 @@
 # Polyglot foundation validation
 
+Integration with main at `73060d7` (FUSE 0.5.1): the combined suite passed with 469 tests,
+6 optional skips and 184 subtests. Ruff, formatting (160 files), strict mypy (78 source
+files), documentation validation (121 Markdown files) and Go tests passed. Earlier
+terminal failures were resolved by the main updates. Five local Git subprocess failures
+were traced to an injected GIT_CONFIG_COUNT without its required value; clearing that
+variable only for the test process restored valid Git invocation. Tests were not weakened.
+The measurements below preserve the earlier implementation snapshot and its baseline.
+
 Repository: `https://github.com/ShivuXD/FUSE`, separate checkout `FUSE-polyglot`.
 Branch: `feat/polyglot-platform-foundation`. Starting commit:
 `63fb424ab262d1dc99ea4c0d872b7c9fe9cfe533`.
