@@ -1,5 +1,13 @@
 # Release process
 
+## 0.5.1 preparation
+
+The 2026-11-21 consolidation prepares version 0.5.1 with the existing scanner and analyzer functionality, adaptive repository inspection, optional CLIUI, and experimental cyber-physical commands. The simulated vulnerable lab belongs only on `demo/vulnerable-lab`; version 0.5.1 removes its accidental inclusion in the superseded 0.5.0 draft. Ongoing `feat/polyglot-platform-foundation` work is excluded. See [the changelog](../CHANGELOG.md).
+
+Build with `python -m build`, validate both distributions with Twine 7, and smoke-test the wheel in a clean environment. Install `.[dev,cliui]` for the quality checks so Mypy can inspect the optional UI imports. A GitHub draft release does not trigger PyPI publishing; publishing that release does. The 0.4.0 acceptance record below is historical and does not establish acceptance for 0.5.1.
+
+## Historical 0.4.0 release
+
 VIGIL-FUSE remains in the 0.x alpha series. Version 0.4.0 was published on 2026-11-15 under the VIGIL-FUSE Restricted Use License v1.2 after the required technical checks passed. Shantanu is the copyright holder for current and future releases. VIGIL-IoT remains the project organization and repository namespace. The source is available under a custom license, not an OSI-approved open-source license. Initial feature development is complete and maintenance mode is active.
 
 The license has not received external legal review. PyPI Support issue [#12999](https://github.com/pypi/support/issues/12999) remains open. The owner has authorized the release while policy guidance is pending. A successful upload is not PyPI policy approval. The current owner decision and historical license record are in the [rights and distribution record](governance/rights-review-packet.md).

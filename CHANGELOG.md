@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.5.1 - 2026-11-21
+
+### Fixed
+
+- Removed the accidentally consolidated vulnerable demo fixture, its scan helper, test, and CI exclusion from main. The simulated lab remains on the separate `demo/vulnerable-lab` branch.
+- Supersedes the 0.5.0 draft without rewriting its tag. Other consolidated features are unchanged.
+
+## 0.5.0 - 2026-11-21
+
+### Added
+
+- Adaptive repository inspection with RepoDNA, component graphs, target modeling, and analysis routing.
+- Persistent interactive CLIUI with scan progress, report summaries, a framed command prompt, and plain-input fallback. The prompt-toolkit dependency remains optional through the `cliui` extra.
+- Experimental bounded Device Tree and CMSIS-SVD parsing, digital-twin descriptions, synthetic Renode exports, physical reachability correlation, cFE flight-bus evidence and policy checks, and resilience indicators.
+- An intentionally vulnerable static demonstration fixture with fake credentials, invalid key material, expected findings, and a PowerShell scan helper. Repository CI excludes the fixture from its security self-scan.
+
+### Fixed
+
+- Consolidated CLI registration while preserving repository inspection, existing scanner and analyzer commands, and frontier commands.
+- CI installs the optional CLIUI extra for type checking; interactive report-path assertions resolve Windows short paths.
+- Updated pinned workflow actions and development Twine requirements. Rust setup retains the selected Rust 1.89.0 toolchain and existing warning behavior.
+
+### Limits
+
+- Cyber-physical results remain partial static evidence, not proof of physical reachability, exploitability, radiation failure, or real-hardware behavior.
+- The ongoing `feat/polyglot-platform-foundation` work is outside this release.
+
 ## 0.4.0 - 2026-11-15
 
 ### Security analysis
