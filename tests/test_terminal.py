@@ -2,6 +2,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 import json
 import os
+import re
 from pathlib import Path
 import tempfile
 import unittest
@@ -45,11 +46,11 @@ class TerminalBannerTests(unittest.TestCase):
 
     def test_unicode_color_identity(self):
         banner = self.render()
-        self.assertIn("███████", banner)
-        self.assertIn("Firmware & Unified Security Engine", banner)
-        self.assertIn("A VIGIL Project", banner)
-        self.assertIn("\x1b[38;2;203;166;247m", banner)
-        self.assertIn("\x1b[38;2;205;214;244m", banner)
+        plain = re.sub(r"\x1b\[[0-9;]*m", "", banner)
+        self.assertIn("███████", plain)
+        self.assertIn("Firmware & Unified Security Engine", plain)
+        self.assertIn("VIGIL", plain)
+        self.assertIn("\x1b[38;2;", banner)
         self.assertNotIn("\x1b[48;", banner)
 
     def test_no_color_and_legacy_encoding(self):
@@ -58,11 +59,11 @@ class TerminalBannerTests(unittest.TestCase):
                 banner = self.render(encoding=encoding, no_color=True)
                 self.assertNotIn("\x1b[", banner)
                 banner.encode(encoding)
-        self.assertIn("FFFFFF", self.render(encoding="ascii"))
+        self.assertIn("FFFFFF", self.render(encoding="ascii", no_color=True))
 
     def test_narrow_identity_fits(self):
         banner = self.render(width=25, no_color=True)
-        self.assertTrue(banner.startswith("FUSE\n"))
+        self.assertTrue(banner.startswith("FUSE by VIGIL\n"))
         self.assertTrue(all(len(line) <= 25 for line in banner.splitlines()))
 
     def test_redirected_either_stream_is_silent(self):

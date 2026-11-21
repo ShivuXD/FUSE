@@ -24,6 +24,7 @@ _ASCII_MARK = (
 _STOPS = ((220, 38, 38), (251, 113, 133), (167, 139, 250), (96, 165, 250), (55, 48, 255))
 _RESET = "\033[0m"
 
+
 def supports_color() -> bool:
     return (
         sys.stdout.isatty()
@@ -75,6 +76,7 @@ def show_banner() -> None:
 
     columns = shutil.get_terminal_size(fallback=(80, 24)).columns
     encoding = sys.stderr.encoding or "ascii"
+    mark: tuple[str, ...]
     try:
         "".join(_UNICODE_MARK).encode(encoding)
         mark = _UNICODE_MARK
@@ -88,7 +90,7 @@ def show_banner() -> None:
         lines = [
             _paint("FUSE by VIGIL", "#A78BFA", color, bold=True),
             _paint(f"v{__version__}  |  local security", "#94A3B8", color),
-            _paint("Static evidence. Explicit coverage.", "#94A3B8", color),
+            _paint("Static evidence. Explicit coverage."[:columns], "#94A3B8", color),
         ]
         print("\n".join(lines) + "\n", file=sys.stderr)
         return
@@ -104,11 +106,14 @@ def show_banner() -> None:
 
     def frame(text: str = "", *, tint: str = "#CBD5E1") -> str:
         # Visible text only; never pass ANSI sequences into the width calculation.
-        text = text[:inner - 4]
+        text = text[: inner - 4]
         pad = " " * max(inner - len(text) - 2, 0)
         return (
             _paint(side, frame_color, color)
-            + " " + _paint(text, tint, color) + pad + " "
+            + " "
+            + _paint(text, tint, color)
+            + pad
+            + " "
             + _paint(side, frame_color, color)
         )
 
@@ -124,20 +129,30 @@ def show_banner() -> None:
             spaces = " " * max(inner - len(art_line) - 2, 0)
             lines.append(
                 _paint(side, frame_color, color)
-                + " " + _gradient_line(art_line, color, logo_width)
-                + spaces + " " + _paint(side, frame_color, color)
+                + " "
+                + _gradient_line(art_line, color, logo_width)
+                + spaces
+                + " "
+                + _paint(side, frame_color, color)
             )
     else:
         lines.append(frame("FUSE", tint="#A78BFA"))
 
-    lines.extend([
-        frame(),
-        frame("Firmware & Unified Security Engine", tint="#E2E8F0"),
-        frame(f"by VIGIL   •   v{__version__}" if unicode_ok else f"by VIGIL   |   v{__version__}", tint="#94A3B8"),
-        frame("Static evidence. Explicit coverage.", tint="#94A3B8"),
-        frame(),
-        _paint(bottom_left + rule * inner + bottom_right, frame_color, color),
-        _paint("  LOCAL ANALYSIS  /  Choose a scan mode to begin", "#60A5FA", color),
-        "",
-    ])
+    lines.extend(
+        [
+            frame(),
+            frame("Firmware & Unified Security Engine", tint="#E2E8F0"),
+            frame(
+                f"by VIGIL   •   v{__version__}"
+                if unicode_ok
+                else f"by VIGIL   |   v{__version__}",
+                tint="#94A3B8",
+            ),
+            frame("Static evidence. Explicit coverage.", tint="#94A3B8"),
+            frame(),
+            _paint(bottom_left + rule * inner + bottom_right, frame_color, color),
+            _paint("  LOCAL ANALYSIS  /  Type /help to begin", "#60A5FA", color),
+            "",
+        ]
+    )
     print("\n".join(lines), file=sys.stderr)

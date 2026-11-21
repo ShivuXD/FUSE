@@ -32,7 +32,7 @@ vigil-fuse scan path/to/embedded-project --plan
 vigil-fuse scan path/to/embedded-project --output-dir .fuse-results
 ```
 
-Run `vigil-fuse` from the project folder for an interactive scan menu with full project, profile-specific, dependency, firmware-signature, and Ghidra modes. It shows the resolved folder and asks before scanning. Ghidra inspects one binary and FUSE checks its structured metadata for supported signals; it does not export decompiled pseudocode. After the scan, you can request an aesthetic PDF report. PDF compilation needs `pdflatex`; FUSE keeps the `.tex` source if it is unavailable.
+Run `vigil-fuse` in a terminal to start a persistent command session. Type `/help` to discover commands, `/scan` to analyze the current target, and `/exit` to leave. Install `vigil-fuse[cliui]` for command completion and keyboard history; basic input works without it. See [interactive usage](docs/usage.md#interactive-terminal-launch).
 
 A normal scan writes `findings.json`, `findings.txt`, and `findings.sarif` to `.fuse-results/`. Start with `--plan` to review selected inputs, supported stages, limits, and available tools before scanning.
 
