@@ -37,6 +37,7 @@ class FieldModel:
 class RegisterModel:
     name: str
     offset: int
+    size_bits: int | None
     access: str | None
     reset_value: int | None
     reset_mask: int | None
@@ -166,6 +167,7 @@ def parse_svd(data: bytes, source: str) -> SvdResult:
                 continue
             base = _required_number(peripheral, "baseAddress")
             default_access = _text(peripheral, "access") or _text(document, "access")
+            default_size = _text(peripheral, "size") or _text(document, "size")
             default_reset = _text(peripheral, "resetValue") or _text(document, "resetValue")
             default_mask = _text(peripheral, "resetMask") or _text(document, "resetMask")
             interrupts = tuple(sorted(
@@ -230,8 +232,11 @@ def parse_svd(data: bytes, source: str) -> SvdResult:
                                                           _text(group, "usage")))
                     fields.append(FieldModel(field_name, bit_offset, bit_width,
                                              _text(field, "access") or access, tuple(values)))
+                size_bits = _number(_text(register, "size") or default_size)
+                if size_bits == 0:
+                    raise ValueError("SVD register size must be positive")
                 registers.append(RegisterModel(register_name, _required_number(register, "addressOffset"),
-                                               access, reset, mask, tuple(fields)))
+                                               size_bits, access, reset, mask, tuple(fields)))
             peripherals.append(PeripheralModel(peripheral_name, base, interrupts, tuple(registers)))
         device = DeviceModel(name, _text(document, "version"), source,
                              hashlib.sha256(data).hexdigest(), tuple(peripherals))

@@ -21,9 +21,20 @@ does not mean every bit is defined: consult the recorded reset mask.
 selected peripherals and retains SVD provenance and unknown reset values. When a
 BOM is supplied, exact component-name or part-number matches to the SVD device
 name are recorded as candidates, not verified identity. Output is capped at 4 MiB.
-The description adds no synthetic behavior and does not run firmware. Emulator
-export and emulation are not yet implemented; no CLI or scan stage invokes this
-API yet.
+The description adds no synthetic behavior and does not run firmware.
+
+The experimental `export_renode` API emits a Renode `.repl` string for a narrow
+subset of 32-bit registers with fully known reset masks and explicit caller-supplied
+region sizes. Synthetic reads return those reset values, with optional explicitly
+supplied ready-bit masks applied on every read; unlisted offsets return zero and
+writes are ignored. The output is **synthetic emulation behavior**, not hardware
+behavior. It does not model access widths, side effects, interrupts or access
+permissions. It rejects unknown reset masks, overlapping or invalid regions and
+unmatched overrides; it does not embed SVD names into executable script text.
+Renode has not been installed or run to validate the output. No emulator execution,
+QEMU exporter, CLI or scan stage invokes these APIs yet.
 
 See Arm's [CMSIS-SVD register specification](https://arm-software.github.io/CMSIS_5/SVD/html/elem_registers.html)
 for inheritance, fields, clusters and arrays.
+[Renode's Python peripheral documentation](https://renode.readthedocs.io/en/latest/basic/using-python.html)
+describes the platform format used by the experimental exporter.
