@@ -1,0 +1,55 @@
+$ vigil-fuse --version
+FUSE 0.5.1
+$ vigil-fuse scan firmware --target-label demo/firmware
+FUSE scan: demo/firmware
+Target kind: directory
+Profile: generic
+Support: basic / completed
+Network policy: not-requested
+Scanned manifest SHA-256: 96c0cde8283c0b3c2aa967ea18abf6a98c0419535ae15a50f2dc930cc2b30bdc
+Files discovered/selected: 1/1
+Files filtered by path policy: 0
+Files scanned: 1
+Source bytes read: 83
+Files skipped: 0
+Files decoded with ISO-8859-1 fallback: 0
+Discovery complete: yes
+Findings: 2
+Hardware artifacts: 0
+Files not selected by the source profile: 0
+Hardware inventory: no recognized hardware artifacts in target scope.
+Firmware-like file candidates: 0 / complete (extension and size only, contents not inspected)
+Analyzers:
+  fuse-native: completed (Native rules completed.)
+  native-rule:FUSE001: skipped (No selected input matched this rule's supported input scope.)
+  native-rule:FUSE002: skipped (No selected input matched this rule's supported input scope.)
+  native-rule:FUSE003: skipped (No selected input matched this rule's supported input scope.)
+  native-rule:FUSE004: completed (Evaluated 1 selected input(s).)
+  native-rule:FUSE005: skipped (No selected input matched this rule's supported input scope.)
+  native-rule:FUSE006: skipped (No selected input matched this rule's supported input scope.)
+  native-rule:FUSE007: skipped (No selected input matched this rule's supported input scope.)
+  firmware-candidate-inventory: completed (Recorded 0 filename and size candidate(s); no image contents were read or verified.)
+
+[MEDIUM] FUSE004 - Non-loopback HTTP endpoint configured
+  Severity basis: rule
+  Confidence: high
+  Applicability: unknown
+  Validation: static (not-validated)
+  Location: main.c:1
+  Evidence: http://api.device.local
+  Explanation: A non-loopback URL explicitly uses HTTP. This indicates an unencrypted endpoint in source or configuration, but does not prove the endpoint is reachable or used.
+  Potential impact: If the endpoint carries sensitive data over an untrusted network, traffic may be observed or modified in transit.
+  Remediation: Use HTTPS with certificate verification for the service and confirm that the device rejects invalid certificates.
+  References: https://cwe.mitre.org/data/definitions/319.html
+
+[MEDIUM] FUSE004 - Non-loopback HTTP endpoint configured
+  Severity basis: rule
+  Confidence: high
+  Applicability: unknown
+  Validation: static (not-validated)
+  Location: main.c:2
+  Evidence: http://0.0.0.0
+  Explanation: A non-loopback URL explicitly uses HTTP. This indicates an unencrypted endpoint in source or configuration, but does not prove the endpoint is reachable or used.
+  Potential impact: If the endpoint carries sensitive data over an untrusted network, traffic may be observed or modified in transit.
+  Remediation: Use HTTPS with certificate verification for the service and confirm that the device rejects invalid certificates.
+  References: https://cwe.mitre.org/data/definitions/319.html

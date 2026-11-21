@@ -1,27 +1,108 @@
-# FUSE
+<h1 align="center">FUSE</h1>
+<h3 align="center">Firmware &amp; Unified Security Engine</h3>
 
-## Firmware & Unified Security Engine
+<p align="center">Evidence-driven security analysis across source code, firmware, build context and hardware artifacts.</p>
 
-**A standalone sathack project by Team VIGIL**
+<p align="center">
+  <a href="https://github.com/ShivuXD/FUSE/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ShivuXD/FUSE/ci.yml?branch=main&amp;label=CI"></a>
+  <a href="pyproject.toml"><img alt="Python 3.11 or newer" src="https://img.shields.io/badge/python-3.11%2B-3776AB"></a>
+  <a href="src/vigil_fuse/__init__.py"><img alt="Source version 0.5.1, alpha" src="https://img.shields.io/badge/source-0.5.1%20alpha-64748b"></a>
+  <a href="LICENSE"><img alt="Restricted Use License v1.2" src="https://img.shields.io/badge/license-restricted%20use%20v1.2-7c3aed"></a>
+</p>
 
-Created by Team VIGIL.
+<p align="center"><a href="#quick-start">Quick start</a> · <a href="#how-fuse-scans-a-project">Scan pipeline</a> · <a href="#what-fuse-analyzes">Supported inputs</a> · <a href="#documentation">Documentation</a></p>
 
-FUSE is a CLI-first analysis tool for embedded and IoT project repositories. It checks selected source and configuration files, inventories hardware and firmware candidates, reads selected build metadata, and can run optional dependency or firmware analyzers. Reports include evidence and explicit coverage so a static signal is not mistaken for a confirmed vulnerability.
+![FUSE 0.5.1 CLI: controlled fixture scan, completed native analysis, two findings and static evidence with unknown applicability](docs/assets/readme/fuse-cli.png)
 
-[![CI](https://img.shields.io/github/actions/workflow/status/ShivuXD/fuse/ci.yml?branch=main&label=CI)](https://github.com/ShivuXD/fuse/actions/workflows/ci.yml)
-[![Evaluation report](https://img.shields.io/badge/evaluation-PDF%20report-C84335?logo=adobeacrobatreader&logoColor=white)](https://shivuxd.github.io/FUSE/)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
-[![Custom restricted-use license v1.2](https://img.shields.io/badge/license-custom%20restricted%20use%20v1.2-7c3aed)](LICENSE)
+*Faithful rendering of captured CLI excerpts from a controlled fixture scan, not an OS screenshot. Omitted lines are marked. [Full output and reproduction notes](docs/assets/readme/README.md).*
 
-**Alpha · 0.4.0**
+## What FUSE does
 
-**Development status:** The 0.4.0 baseline is available in this repository. New adaptive analysis work is in development. The [completion record](docs/PROJECT_COMPLETION.md) describes the earlier scope.
+FUSE inspects embedded and IoT projects without executing target code. Its deterministic Python core combines bounded source checks, selected build metadata, firmware evidence, hardware context and optional external analyzers into normalized findings with explicit coverage. It runs locally, with no required cloud service or AI model.
 
-Latest [binary detection comparison](reports/evaluation/2026-11-15/binary-detection/README.md): the three real ESP-IDF rebuilds retained partial inventories and completed the independent security traversal without findings. Their ELF hashes differ from the immutable November 14 artifacts, so this is not a byte-identical rerun. See the [November 14 baseline](reports/evaluation/2026-11-14/README.md). Independent human review is still pending.
+**SOURCE → BUILD → FIRMWARE → HARDWARE → FUSE EVIDENCE**
 
-## Start here
+These are related evidence layers, not five mandatory stages in every scan. A source literal, a selected build setting, an image reference and a debug-net connection answer different questions about a product.
 
-Requires Python 3.11 or newer. The native scanner has no runtime dependencies.
+| Principle | In practice |
+| --- | --- |
+| **Cross-layer evidence** | Review source signals alongside build, component, image and board context in a common report. |
+| **Evidence over assumptions** | Static presence does not establish runtime execution or physical exploitability. |
+| **Explicit uncertainty** | Skipped files, unavailable tools, unsupported inputs and partial analysis remain visible. |
+
+<details>
+<summary>Contents</summary>
+
+[Pipeline](#how-fuse-scans-a-project) · [Architecture](#architecture) · [Evidence](#evidence-before-verdicts) · [Quick start](#quick-start) · [CLI](#cli-usage) · [Inputs](#what-fuse-analyzes) · [Clang](#compiler-semantic-cc-evidence) · [Outputs](#reports-you-can-review) · [Trust](#trust-boundaries) · [Validation](#built-to-be-testable) · [Languages](#built-polyglot-intentionally) · [Status](#current-state) · [Direction](#where-fuse-can-go-next) · [Docs](#documentation) · [Limits](#limitations) · [License](#license-and-attribution)
+
+</details>
+
+## How FUSE scans a project
+
+![Archify workflow: local input and operator, FUSE CLI and native rules, and separately requested optional analyzers feeding findings and reports](docs/assets/readme/fuse-archify-pipeline.png)
+
+[Open the interactive pipeline →](https://sathack-vigil-fuse.vercel.app/diagrams/fuse-scan.html) · [Standalone HTML source](site/diagrams/fuse-scan.html).
+
+Interactive workflow visualization generated with Archify. This preview captures the existing file; Archify is not a FUSE runtime dependency. [Third-party credits](docs/THIRD_PARTY_CREDITS.md) preserve its attribution and the embedded font notice.
+
+The target passes through bounded discovery, native and contextual checks, then only the optional analyzers requested by the operator. FUSE validates external evidence, normalizes findings and writes coverage-aware reports. The overview names a subset of external tools; the current integration list is below.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    T[Repository or artifact] --> D[Bounded discovery]
+    D --> P[Python native rules]
+    D --> B[Build and hardware context]
+    D -. requested .-> X[Optional analyzer adapters]
+    C[Explicit compilation database] -. opt-in module .-> L[Clang AST evidence]
+    L --> V[Strict Python validation]
+    V --> S[SemanticResult observations]
+    P --> E[Normalized findings and coverage]
+    B --> E
+    X --> E
+    E --> O[Text / JSON / SARIF]
+    X --> I[Requested inventory artifacts]
+```
+
+Python owns scan policy, evidence interpretation and reporting. Native rules run in a killable worker with deadlines. External adapters have bounded inputs, subprocess output and artifact validation. The separate Clang module returns observations; ordinary `scan` does not automatically run it or turn its calls into findings.
+
+The local CLI is the primary interface. The optional Go/Kubernetes foundation schedules an identity probe only, with explicit evidence handoff. See [architecture](docs/architecture.md), [polyglot boundaries](docs/architecture/polyglot-platform.md) and [execution backends](docs/architecture/execution-backends.md).
+
+## Evidence before verdicts
+
+```text
+PRESENT ≠ BUILD_INCLUDED ≠ runtime execution ≠ physical accessibility
+```
+
+`PRESENT`, `BUILD_INCLUDED` and `UNKNOWN` are Clang coverage terms. A selected translation unit that parses is build-included evidence within that database, not proof that its functions execute. Runtime execution and physical accessibility are separate questions, not claimed coverage states.
+
+| Dimension | Question |
+| --- | --- |
+| Severity | What is the potential impact? |
+| Confidence | How strong is the evidence for this detection? |
+| Applicability | Does this signal apply to the shipped target? |
+| Coverage | What inputs and analysis stages actually completed? |
+| Validation | Was this only static evidence, or independently validated? |
+
+FUSE keeps these judgments separate instead of manufacturing a combined risk number.
+
+<details>
+<summary>Explore the finding model</summary>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/figures/fuse-finding-model.svg">
+  <source media="(prefers-color-scheme: light)" srcset="docs/figures/fuse-finding-model-light.svg">
+  <img alt="Conceptual finding model with separate severity, confidence, applicability and validation" src="docs/figures/fuse-finding-model-light.svg">
+</picture>
+
+This teaching illustration is not physical FUSE hardware. [Finding fields and schema](docs/finding-schema.md).
+
+</details>
+
+## Quick start
+
+Use the repository to get the capabilities described here. Requires **Python 3.11+** on Windows, Linux or macOS; the core scanner has no runtime dependencies.
 
 ```sh
 git clone https://github.com/ShivuXD/FUSE.git
@@ -29,109 +110,175 @@ cd FUSE
 python -m venv .venv
 ```
 
-Activate the environment using `.venv\Scripts\Activate.ps1` in PowerShell or `source .venv/bin/activate` on Linux and macOS. Then install and run FUSE:
+Activate with `.venv\Scripts\Activate.ps1` in PowerShell or `source .venv/bin/activate` on Linux/macOS. Use `python3` to create the environment if your system does not provide `python`. Then:
 
 ```sh
 python -m pip install .
-vigil-fuse
 vigil-fuse doctor
-vigil-fuse scan path/to/embedded-project --plan
-vigil-fuse scan path/to/embedded-project --output-dir .fuse-results
+vigil-fuse scan ./project --plan
+vigil-fuse scan ./project --output-dir .fuse-results
 ```
 
-Run `vigil-fuse` in a terminal to start a persistent command session. Type `/help` to discover commands, `/scan` to analyze the current target, and `/exit` to leave. Install `vigil-fuse[cliui]` for command completion and keyboard history; basic input works without it. See [interactive usage](docs/usage.md#interactive-terminal-launch).
+Replace `./project` with your local target. On Windows, activation is optional: use `.\.venv\Scripts\python.exe -m pip install .` and `.\.venv\Scripts\vigil-fuse.exe doctor` directly.
 
-A normal scan writes `findings.json`, `findings.txt`, and `findings.sarif` to `.fuse-results/`. Start with `--plan` to review selected inputs, supported stages, limits, and available tools before scanning.
+[Detailed setup and configuration](docs/usage.md). Optional analyzers require separate trusted installations.
 
-See the [usage guide](docs/usage.md) for setup, scan options, optional analyzers, and report review.
+## CLI usage
 
-Install from this repository using the steps above.
+Preview discovery, select build context without running its build system, or request external evidence:
 
-## How a scan works
+```sh
+vigil-fuse scan ./project --profile esp-idf --plan
+vigil-fuse scan ./project --profile esp-idf --build-dir build --output-dir .fuse-results
+vigil-fuse scan ./project --sbom --vulnerabilities --output-dir .fuse-results
+vigil-fuse scan firmware.elf --ghidra --output-dir .fuse-results
+```
 
-![FUSE scan flow from a selected local project through bounded discovery, native checks, context inventory, optional analyzers, normalized findings, and local reports](docs/figures/fuse-scan-flow.svg)
+OSV advisory lookup can use the network; use `--no-network` for strict offline vulnerability checks with the required local database. Other opt-ins include `--git-history`, `--firmware`, `--hardware-bom` and `--hardware-netlist`. `--fail-on high` supports CI thresholds; baseline commands compare reports and apply reasoned suppressions. See `vigil-fuse scan --help` and [usage](docs/usage.md).
 
-[Open the standalone diagram source](site/diagrams/fuse-scan-flow.html).
+Run `vigil-fuse` in a terminal for the persistent shell. `/help`, `/status`, `/target`, `/profile`, `/plan`, `/scan`, `/findings` and `/exit` use the same scan engine. Install `python -m pip install ".[cliui]"` for completion and session-only command-name history; basic input works without it.
 
-Native rules analyze selected text without importing or executing project code. FUSE does not flash devices, contact device services, or prove that a static signal is reachable in a deployed product. Optional external analyzers run on the host by default. Explicit Docker mode uses local digest-pinned images, read-only inputs, bounded output capture, no network by default, and resource limits. The report directory is never bind-mounted, and nested report paths are hidden behind bounded temporary storage. Host mode remains unsandboxed.
+## What FUSE analyzes
 
-![FUSE trust boundaries: untrusted project input, local analysis, and optional analyzers running on the host or in explicit Docker isolation](docs/figures/fuse-trust-boundaries.svg)
+Labels follow the [machine-readable support matrix](src/vigil_fuse/support-matrix.json). **Detected** means inventory, **basic** means narrow native checks, and **experimental** means an opt-in or evolving contract. None implies complete product coverage.
 
-The diagram shows the difference between default host execution and the explicitly configured Docker option. [Open its editable source](docs/diagrams/fuse-trust-boundaries.html).
+| Layer | Inputs and evidence | Current scope |
+| --- | --- | --- |
+| Source | Selected C/C++, Python, text and configuration; seven native rules | Basic: credential-like literals, key markers, TLS bypasses, HTTP/MQTT and ESP-IDF image-validation settings |
+| Build | ESP-IDF, Zephyr, PlatformIO; compilation database metadata | Experimental adapters; database inventory is detected only |
+| C/C++ semantics | Explicit compilation database with allowed `arguments` arrays | Experimental, separate Clang module; observations only |
+| Firmware | Candidate filenames; selected image with Binwalk or Ghidra | Detected inventory; experimental signatures and static binary evidence |
+| Hardware | Design/CAD/HDL filenames; CSV/TSV BOM; KiCad XML netlist | Detected inventory; experimental BOM import and debug-connectivity candidates |
+| Supply chain | CycloneDX/SPDX, OSV, Git history, VEX and SLSA digest context | Basic advisory matching; experimental history and product-context adapters |
+| Workflows | Selected GitHub Actions permission, reference and interpolation patterns | Basic static checks |
+| Research foundations | Device-tree/SVD parsing, cFE bus evidence, resilience indicators and Renode export | Experimental Python APIs; partial evidence, no device execution |
 
-## Understand a finding
+Firmware filename recognition does not inspect bytes. Ghidra recognizes ELF, PE and Mach-O magic, but loader and processor success depend on the input and tested toolchain. Raw images need an explicit language ID and base address. Hardware net connectivity does not establish physical access.
 
-Severity describes potential impact. Confidence describes the strength of the evidence. Applicability and validation are separate fields. FUSE does not combine these into a single risk score.
+### Optional analyzers
 
-![Conceptual FUSE finding model showing separate severity and confidence fields](docs/figures/fuse-finding-model.svg)
+| Tool | Role and boundary |
+| --- | --- |
+| Syft | Generates CycloneDX software inventory. |
+| OSV-Scanner | Matches package identities to advisories; inclusion and reachability remain separate. |
+| Binwalk | Identifies selected image signatures without extraction. |
+| Gitleaks | Scans commits reachable from `HEAD`; FUSE retains redacted metadata. |
+| Ghidra 12.2 + JDK 25+ | Exports bounded static binary metadata through the Java bridge. |
+| Clang/LLVM | Supplies compiler-semantic observations through the separate native producer. |
 
-The figure starts from the illustrative `FUSE001` record in the [finding format](docs/finding-schema.md). It is a teaching example, not a scan result or a physical FUSE device. [Open the interactive version](site/diagrams/fuse-finding-model.html).
+Optional analyzers provide evidence. FUSE validates and normalizes their output. Missing tools remain visible without preventing native scans. Docker isolation is available for Syft, OSV-Scanner, Binwalk and Gitleaks; Ghidra and the Clang host adapter are outside that sandbox path.
 
-## Current scope
+## Compiler-semantic C/C++ evidence
 
-- Seven conservative native rules for credential-like literals, private-key markers, TLS verification bypasses, plaintext HTTP and MQTT endpoints, and two ESP-IDF image-validation settings.
-- Hardware and firmware candidate inventories. These report recognized files and metadata, not hardware or firmware security assessments.
-- Optional Ghidra 12.2 Headless Analyzer support for selected ELF, PE, Mach-O, or explicitly mapped raw binaries. It writes bounded evidence and keeps static endpoint references as unvalidated candidates.
-- Selected ESP-IDF, Zephyr, PlatformIO, compilation database, and GitHub Actions metadata checks.
-- Optional Syft and OSV-Scanner dependency analysis, Binwalk firmware signature identification, and Gitleaks history checks.
-- Text, schema-versioned JSON, SARIF, CycloneDX inventory, scan coverage, evidence, and remediation guidance.
+```text
+compile_commands.json → Clang LibTooling → AST observations
+                     → strict JSON contract → Python validation
+```
 
-See [supported inputs and limits](src/vigil_fuse/support-matrix.json), [firmware analysis](docs/firmware-analysis.md), [optional Ghidra analysis](docs/ghidra-analysis.md), [hardware analysis](docs/hardware-analysis.md), and [known limitations](docs/limitations.md) for exact boundaries. An [opt-in Clang stage](docs/cpp-semantic-analysis.md) supplies bounded compiler-semantic C/C++ observations with strict Python validation. General firmware extraction, device testing, and hardware-in-the-loop validation remain outside this stage.
+The opt-in producer preserves call sites, arguments, macro locations and selected-build inclusion. It rejects unsupported compiler arguments. It does not add symbolic execution, taint tracking or automatic vulnerability verdicts.
 
-## Measured scan sample
+The committed controlled benchmark records **12 translation units, 79 AST observations and 30 selected API call sites**, with **30/30 fixture-call inventory matches**. This measures selected call recognition on a controlled fixture corpus, not vulnerability precision or recall. The corpus uses stand-in API declarations, not physical tests or general SDK validation. [Method, toolchain, bounds and raw evidence](docs/cpp-semantic-analysis.md#coverage-and-validation).
 
-The same pinned four-scope cohort was scanned on GitHub-hosted Linux, Windows, and macOS runners with one warm-up and three measured runs per scope.
+## Reports you can review
 
-| Selected scope | Linux | Windows | macOS | Coverage |
-| --- | ---: | ---: | ---: | --- |
-| Apache Mynewt Core | 7.586 s | 5.490 s | 6.508 s | 3,354 / 3,355, partial |
-| Mbed TLS | 1.544 s | 0.948 s | 1.234 s | 121 / 121, complete |
-| OpenThread | 2.629 s | 1.930 s | 2.047 s | 909 / 909, complete |
-| ESP-IoT-Solution | 5.760 s | 4.791 s | 4.877 s | 3,886 / 3,888, partial |
+A scan with `--output-dir .fuse-results` writes:
 
-These timings include 20 ms memory sampling and are descriptive samples from one hosted runner per OS, not a controlled speed ranking. Mynewt Core and ESP-IoT-Solution had oversized selected files skipped on every platform. The linked report also records sampled process-tree RSS. See the [method, limitations, and raw reports](docs/experiments/repository-scan-performance-matrix-2026-10-31.md).
+```text
+.fuse-results/
+├── findings.txt
+├── findings.json
+└── findings.sarif
+```
+
+JSON includes findings, coverage, inventories and input/artifact hashes within each stage's declared scope. Requested successful stages can also write `components.cdx.json`, `hardware-bom.cdx.json` or `ghidra-analysis.json`. These are conditional artifacts. [Report contract](docs/finding-schema.md) · [SBOM behavior](docs/sbom.md).
+
+One excerpt from the **controlled fixture scan** shown above:
+
+```text
+[MEDIUM] FUSE004 - Non-loopback HTTP endpoint configured
+  Severity basis: rule
+  Confidence: high
+  Applicability: unknown
+  Validation: static (not-validated)
+  Location: main.c:1
+  Evidence: http://api.device.local
+```
+
+The full report contains two findings from one scanned file, with discovery complete and native analysis completed in that scope. This records configured HTTP strings, not third-party product exploitability.
+
+## Trust boundaries
+
+Project inputs and analyzer outputs are untrusted. FUSE does not execute project code, compiler commands from a compilation database, or firmware. Host analyzers parse inputs with the current user's permissions; subprocess limits are not an OS sandbox.
+
+Explicit Docker mode uses trusted local digest-pinned images, read-only inputs, resource limits and no network by default. Online OSV lookup needs explicit container network permission. The Docker daemon and images remain trusted. FUSE does not flash devices, probe services or validate physical hardware.
+
+<details>
+<summary>View the trust-boundary diagram</summary>
+
+![Untrusted inputs, local processing and the difference between host analyzers and explicit Docker isolation](docs/figures/fuse-trust-boundaries.svg)
+
+</details>
+
+[Threat model](docs/threat-model.md) · [Analyzer isolation settings](docs/usage.md#run-optional-analyzers-in-docker).
+
+## Built to be testable
+
+The checked-in CI defines Linux tests on Python 3.11–3.14, Windows/macOS tests on Python 3.11, Ruff, strict Mypy, documentation checks and Mermaid rendering, coverage, package build/install checks and Docker fixture integration. Separate workflows cover CodeQL and selected external analyzers. Workflow configuration is not a claim that every current job passed; the CI badge links to live results.
+
+Native rules have positive and secure controls. Contract tests cover malformed evidence, bounds and architecture dependencies. The Clang corpus and operator probe have separate validation records. [Contributing](CONTRIBUTING.md) · [Compatibility and CI evidence](docs/compatibility.md).
+
+Historical [repository performance samples](docs/experiments/repository-scan-performance-matrix-2026-10-31.md) record pinned scopes, warm-up/repeats, memory sampling and partial coverage. They are descriptive hosted-runner measurements, not a speed ranking or current-release benchmark. The [0.4.0 completion record](docs/PROJECT_COMPLETION.md) is historical release evidence, not certification of newer features. Independent human adjudication and field accuracy remain pending.
+
+## Built polyglot, intentionally
+
+| Language | Implemented responsibility |
+| --- | --- |
+| Python | Deterministic scanning, policy, evidence validation, applicability, coverage and reports; passive planning models |
+| C++ | Optional Clang LibTooling producer with strict evidence interchange |
+| Go | Experimental Kubernetes identity-probe scheduling and operational state; no security classification |
+| Java | FUSE-owned `FuseExport.java` bridge inside an external Ghidra installation |
+| C / C++ fixtures | Controlled analysis targets and regression evidence, not runtime dependencies |
+
+Numerical and statistical research languages are not runtime components. Rust is explicitly deferred under [`NO_RUST_NEEDED_YET`](docs/native-engine-strategy.md); no Rust or Zig implementation is required. [Platform boundaries](docs/architecture/polyglot-platform.md).
+
+## Current state
+
+**Alpha, source version 0.5.1.** Current `main` includes the core scanner, reports, interactive shell, optional firmware/hardware integrations, passive adaptive planning foundations, the experimental Clang evidence module and the probe-only Go operator. Source version does not establish a matching PyPI release.
+
+Development has moved beyond the earlier maintenance-only completion declaration. The Clang stage is not automatic scan policy, and Kubernetes job success is not security success. Separate installer, policy and numerical/statistical research work is not advertised as implemented support. See [execution limits](cluster/fuse-operator/README.md) and the [roadmap](docs/roadmap.md).
+
+## Where FUSE can go next
+
+**Future / research**, not promised capabilities:
+
+- Richer selected-build and applicability evidence with preserved uncertainty.
+- Policy-as-code and reviewed correlation across evidence classes.
+- Stronger spacecraft protocol and silicon trust evidence beyond current parsing foundations.
+- Digital-twin fault injection beyond today's static model/export boundary.
+- Analyzer workers beyond the Kubernetes identity probe, with validated evidence handoff.
+
+[Adaptive expansion scope](docs/research/adaptive-expansion-scope.md) · [Roadmap](docs/roadmap.md) · [Native engine decision](docs/native-engine-strategy.md).
 
 ## Documentation
 
-- [Architecture and data flow](docs/architecture.md)
-- [Compatibility and CI evidence](docs/compatibility.md)
-- [Finding fields and JSON schema](docs/finding-schema.md)
-- [Rules and fixture requirements](docs/rule-development.md)
-- [Configuration and integrations](docs/integrations.md)
-- [Ghidra analysis and its limits](docs/ghidra-analysis.md) · [Third-party credits](docs/THIRD_PARTY_CREDITS.md)
-- [Ghidra pipeline figure](site/diagrams/fuse-ghidra-pipeline.html) · [Controlled Ghidra benchmark](docs/experiments/ghidra-adapter-2026-11-03.md)
-- [Threat model](docs/threat-model.md) · [Limitations](docs/limitations.md)
-- [Methodology](docs/methodology.md) · [Traceability](docs/traceability.md)
-- [Benchmark method and evidence](docs/benchmarks.md) · [Synthetic scan baseline](reports/benchmark/scan-performance.json) · [Pinned repository performance report](reports/benchmark/repository-scan-performance.json) · [Cross-platform report set](docs/experiments/repository-scan-performance-matrix-2026-10-31.md)
-- [Repository scan reports](reports/repository-scans/README.md) · [FUSE 0.3.0 transfer replay](reports/repository-scans/release-0.3.0-transfer-2026-11-12/README.md) · [Evaluation notes](docs/experiments/pilot-scan-2026-10.md)
-- [Development roadmap](docs/roadmap.md) · [Release process](docs/release-process.md)
-- [Repository audit and maturity evidence](docs/REPOSITORY_AUDIT.md) · [AI skills and specialist tools reference](docs/AI_SKILLS_REFERENCE.md) · [Research source ledger](docs/research-sources.md)
-- [Project site](site/) · [Website maintenance notes](docs/website.md)
+| Intent | Start here |
+| --- | --- |
+| **Use FUSE** | [Usage](docs/usage.md) · [Configuration and integrations](docs/integrations.md) · [Compatibility](docs/compatibility.md) |
+| **Understand evidence** | [Architecture](docs/architecture.md) · [Finding model](docs/finding-schema.md) · [Threat model](docs/threat-model.md) · [Limitations](docs/limitations.md) |
+| **Choose analyzers** | [Ghidra](docs/ghidra-analysis.md) · [Firmware](docs/firmware-analysis.md) · [Hardware](docs/hardware-analysis.md) · [Clang semantics](docs/cpp-semantic-analysis.md) |
+| **Inspect engineering** | [Benchmarks](docs/benchmarks.md) · [Experiments](docs/experiments/) · [Roadmap](docs/roadmap.md) · [Traceability](docs/traceability.md) |
+| **Review research** | [Repository scans](reports/repository-scans/README.md) · [Embedded evaluation](reports/evaluation/2026-11-14/README.md) · [Independent evaluation protocol](docs/research/independent-evaluation-protocol.md) |
 
-## Develop
+## Limitations
 
-```sh
-python -m pip install -e ".[dev]"
-python -m pytest -q
-python -m ruff check src tests scripts
-python -m mypy
-python scripts/validate_docs.py
-```
+A clean report means enabled checks did not match within the scanned scope. Seven native rules are narrow indicators, not a complete language or vulnerability analysis. Build metadata does not prove shipment; advisory matches do not prove vulnerable code runs. Static firmware evidence does not prove exploitability, and hardware inventories do not validate a board. Unsupported inputs and unavailable stages can leave partial coverage.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for repository setup and [rule development](docs/rule-development.md) for the vulnerable fixture, secure fixture, and expected-result workflow.
+There is no physical-device or hardware-in-the-loop validation. Controlled fixtures do not establish independent field precision or recall. Read the [full limitations](docs/limitations.md) before interpreting results.
 
-## License status
+## License and attribution
 
-FUSE is a standalone project created by Team VIGIL. It is source-available under the custom restricted-use license, version 1.2 (see [LICENSE](LICENSE)), with copyright held by Shantanu. The license permits personal, educational, research, internal, and commercial use; private modifications; and publication of analysis outputs. Redistribution and published modifications are restricted. Read the license for its exact terms. This is not an OSI-approved open-source license and has not received external legal review.
+**FUSE · Firmware & Unified Security Engine · Team VIGIL.** Copyright © 2026 Shantanu.
 
-An earlier public snapshot included MIT terms at [commit `ec91524`](https://github.com/VIGIL-IoT/VIGIL-FUSE/commit/ec91524). This license does not revoke permissions already granted for copies made available under those earlier terms. Review the license attached to the specific version you use.
+Source-available under the **VIGIL-FUSE Restricted Use License v1.2**, not an OSI-approved open-source license. Use, private modifications, analysis outputs and redistribution have distinct terms; read [LICENSE](LICENSE) before distributing copies or publishing modifications. Earlier license grants remain governed by the terms attached to those copies.
 
-Because this repository is public on GitHub, GitHub's [Terms of Service](https://docs.github.com/en/site-policy/github-terms/github-terms-of-service) allow users to view and fork it within the service. This license does not disable GitHub's fork feature.
-
----
-
-**FUSE · Firmware & Unified Security Engine · Team VIGIL**
-
-## Multi-repository evaluation report
-
-Read the [LaTeX evaluation and reproduction record](reports/repository-scans/multi-repository-2026-11-14/README.md) or the [PDF report on GitHub Pages](https://shivuxd.github.io/FUSE/report.pdf). Four pinned scopes yielded three static review candidates across 4,347 scanned files, with coverage limitations recorded.
+[Third-party credits](docs/THIRD_PARTY_CREDITS.md) cover external tools and visual assets. Referencing a tool or standard does not imply endorsement or affiliation. [Security reporting](SECURITY.md) · [Contributing](CONTRIBUTING.md).
