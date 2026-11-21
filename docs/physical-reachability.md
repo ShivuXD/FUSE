@@ -18,3 +18,11 @@ exploitability, severity or hardware behavior.
 This is an internal building block; it is not yet integrated into scanning or a CLI
 command. Use a trusted, separately built device-tree artifact and board-specific
 documentation for decisions until those later stages exist and are validated.
+
+The internal `read_netlist_topology` API extends the existing KiCad XML reader with
+net names, component references and pin numbers. It uses the same bounded XML
+preflight and connector heuristics as the existing netlist analyzer. Duplicate or
+missing references, unnamed or duplicate nets, and repeated pins make the result
+partial. Connector classification is a candidate based on reference or component
+description, not proof of an accessible connector. A netlist records design
+connectivity; it does not establish PCB routing or the state of a deployed board.
