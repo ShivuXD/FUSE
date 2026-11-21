@@ -1,10 +1,10 @@
 # Release process
 
-## 0.5.0 preparation
+## 0.5.1 preparation
 
-The 2026-11-21 consolidation prepares version 0.5.0 with the existing scanner and analyzer functionality, adaptive repository inspection, optional CLIUI, experimental cyber-physical commands, and the static vulnerable demo. Ongoing `feat/polyglot-platform-foundation` work is excluded. See [the changelog](../CHANGELOG.md).
+The 2026-11-21 consolidation prepares version 0.5.1 with the existing scanner and analyzer functionality, adaptive repository inspection, optional CLIUI, and experimental cyber-physical commands. The simulated vulnerable lab belongs only on `demo/vulnerable-lab`; version 0.5.1 removes its accidental inclusion in the superseded 0.5.0 draft. Ongoing `feat/polyglot-platform-foundation` work is excluded. See [the changelog](../CHANGELOG.md).
 
-Build with `python -m build`, validate both distributions with Twine 7, and smoke-test the wheel in a clean environment. Install `.[dev,cliui]` for the quality checks so Mypy can inspect the optional UI imports. A GitHub draft release does not trigger PyPI publishing; publishing that release does. The 0.4.0 acceptance record below is historical and does not establish acceptance for 0.5.0.
+Build with `python -m build`, validate both distributions with Twine 7, and smoke-test the wheel in a clean environment. Install `.[dev,cliui]` for the quality checks so Mypy can inspect the optional UI imports. A GitHub draft release does not trigger PyPI publishing; publishing that release does. The 0.4.0 acceptance record below is historical and does not establish acceptance for 0.5.1.
 
 ## Historical 0.4.0 release
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.1 - 2026-11-21
+
+### Fixed
+
+- Removed the accidentally consolidated vulnerable demo fixture, its scan helper, test, and CI exclusion from main. The simulated lab remains on the separate `demo/vulnerable-lab` branch.
+- Supersedes the 0.5.0 draft without rewriting its tag. Other consolidated features are unchanged.
+
 ## 0.5.0 - 2026-11-21
 
 ### Added
