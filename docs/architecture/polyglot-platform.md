@@ -9,7 +9,10 @@ Go schedules disposable Kubernetes Jobs. It handles operational state and isolat
 it does not classify security evidence. Rust is reserved for demonstrated performance
 bottlenecks. Java remains the existing Ghidra exporter. C/C++ remain firmware targets
 and actual native adapters. Julia is numerical research and R is statistical validation.
-No justified new C/C++, Java, Julia or R implementation was needed for this foundation.
+The opt-in [Clang semantic stage](../cpp-semantic-analysis.md) now implements C++
+LibTooling observations with strict Python validation and a controlled C/C++ corpus.
+It does not add automatic security verdicts or a Kubernetes worker. Julia and R
+implementations remain deferred.
 
 The initial worker is an identity probe. It echoes a target identifier and digest and
 explicitly states that no target analysis occurred. It cannot emit findings or security
