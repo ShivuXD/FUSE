@@ -81,7 +81,7 @@ jobs:
         run: python -m ruff format --check src tests scripts
       - name: Run FUSE security self-scan
         run: |
-          vigil-fuse scan . --no-network --no-sbom --no-vulnerabilities --no-firmware --no-git-history --format json --output "$RUNNER_TEMP/fuse-self-scan.json"
+          vigil-fuse scan . --exclude "demo/vulnerable-device/**" --no-network --no-sbom --no-vulnerabilities --no-firmware --no-git-history --format json --output "$RUNNER_TEMP/fuse-self-scan.json"
           python - <<'PY'
           import json
           import os
