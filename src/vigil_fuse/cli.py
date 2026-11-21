@@ -37,6 +37,7 @@ from .ghidra_analyzer import (
     detect_binary_input,
 )
 from .esp_idf_lock import lock_parser_available
+from .frontier_cli import register_commands as register_frontier_commands, run_command as run_frontier_command
 from .hardware_bom import hardware_bom_document
 from .model import AnalysisArtifact, AnalyzerStatus, ScanResult
 from .platform_context import detect_project_frameworks, resolve_build_dir
@@ -147,6 +148,7 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--version", action="version", version=f"FUSE {__version__}")
     commands = parser.add_subparsers(dest="command")
+    register_frontier_commands(commands)
     inspect_parser = commands.add_parser("inspect", help="inspect repository characteristics")
     inspect_parser.add_argument("target", type=Path)
     doctor_parser = commands.add_parser(
@@ -1469,6 +1471,8 @@ def main(
     if args.command is None:
         parser.print_help()
         return 0
+    if args.command == "digital-twin":
+        return run_frontier_command(args)
     if args.command == "inspect":
         try:
             dna = inspect_repository(args.target)

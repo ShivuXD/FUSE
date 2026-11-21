@@ -32,7 +32,17 @@ behavior. It does not model access widths, side effects, interrupts or access
 permissions. It rejects unknown reset masks, overlapping or invalid regions and
 unmatched overrides; it does not embed SVD names into executable script text.
 Renode has not been installed or run to validate the output. No emulator execution,
-QEMU exporter, CLI or scan stage invokes these APIs yet.
+QEMU exporter or scan stage invokes these APIs yet.
+
+The noninteractive command reads only explicitly selected local files inside the
+target directory and writes the intermediate JSON to standard output:
+
+```sh
+vigil-fuse digital-twin ./project --svd board.svd --peripheral USART2 --hardware-bom bom.csv
+```
+
+It returns exit code `1` for partial output and `2` for invalid input. The command
+does not generate or execute a Renode platform.
 
 See Arm's [CMSIS-SVD register specification](https://arm-software.github.io/CMSIS_5/SVD/html/elem_registers.html)
 for inheritance, fields, clusters and arrays.
