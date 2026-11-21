@@ -543,6 +543,13 @@ def _doctor(
         else:
             detail = version or "version unavailable"
             _safe_print(f"  {name}: {detail} [{executable}]")
+    from .clang_analyzer import inspect_clang
+
+    _, clang_status = inspect_clang()
+    availability = "available" if clang_status.status == "completed" else clang_status.status
+    _safe_print(f"  Clang semantic analyzer: {availability}")
+    _safe_print(f"  LLVM/Clang version: {clang_status.version or 'not detected'}")
+    _safe_print(f"  Clang detail: {clang_status.detail}")
     selected_install = _resolve_ghidra_install_dir(
         ghidra_install_dir,
         config.ghidra_install_dir if config is not None else None,
