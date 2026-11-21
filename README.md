@@ -10,7 +10,7 @@
   <a href="LICENSE"><img alt="Restricted Use License v1.2" src="https://img.shields.io/badge/license-restricted%20use%20v1.2-7c3aed"></a>
 </p>
 
-<p align="center"><a href="#quick-start">Quick start</a> · <a href="#how-fuse-scans-a-project">Scan pipeline</a> · <a href="#what-fuse-analyzes">Supported inputs</a> · <a href="#documentation">Documentation</a></p>
+<p align="center"><a href="#quick-start">Quick start</a> Â· <a href="#how-fuse-scans-a-project">Scan pipeline</a> Â· <a href="#what-fuse-analyzes">Supported inputs</a> Â· <a href="#documentation">Documentation</a></p>
 
 ![FUSE 0.5.1 CLI: controlled fixture scan, completed native analysis, two findings and static evidence with unknown applicability](docs/assets/readme/fuse-cli.png)
 
@@ -20,7 +20,7 @@
 
 FUSE inspects embedded and IoT projects without executing target code. Its deterministic Python core combines bounded source checks, selected build metadata, firmware evidence, hardware context and optional external analyzers into normalized findings with explicit coverage. It runs locally, with no required cloud service or AI model.
 
-**SOURCE → BUILD → FIRMWARE → HARDWARE → FUSE EVIDENCE**
+**SOURCE â†’ BUILD â†’ FIRMWARE â†’ HARDWARE â†’ FUSE EVIDENCE**
 
 These are related evidence layers, not five mandatory stages in every scan. A source literal, a selected build setting, an image reference and a debug-net connection answer different questions about a product.
 
@@ -33,7 +33,7 @@ These are related evidence layers, not five mandatory stages in every scan. A so
 <details>
 <summary>Contents</summary>
 
-[Pipeline](#how-fuse-scans-a-project) · [Architecture](#architecture) · [Evidence](#evidence-before-verdicts) · [Quick start](#quick-start) · [CLI](#cli-usage) · [Inputs](#what-fuse-analyzes) · [Clang](#compiler-semantic-cc-evidence) · [Outputs](#reports-you-can-review) · [Trust](#trust-boundaries) · [Validation](#built-to-be-testable) · [Languages](#built-polyglot-intentionally) · [Status](#current-state) · [Direction](#where-fuse-can-go-next) · [Docs](#documentation) · [Limits](#limitations) · [License](#license-and-attribution)
+[Pipeline](#how-fuse-scans-a-project) Â· [Architecture](#architecture) Â· [Evidence](#evidence-before-verdicts) Â· [Quick start](#quick-start) Â· [CLI](#cli-usage) Â· [Inputs](#what-fuse-analyzes) Â· [Clang](#compiler-semantic-cc-evidence) Â· [Outputs](#reports-you-can-review) Â· [Trust](#trust-boundaries) Â· [Validation](#built-to-be-testable) Â· [Languages](#built-polyglot-intentionally) Â· [Status](#current-state) Â· [Direction](#where-fuse-can-go-next) Â· [Docs](#documentation) Â· [Limits](#limitations) Â· [License](#license-and-attribution)
 
 </details>
 
@@ -41,7 +41,7 @@ These are related evidence layers, not five mandatory stages in every scan. A so
 
 ![Archify workflow: local input and operator, FUSE CLI and native rules, and separately requested optional analyzers feeding findings and reports](docs/assets/readme/fuse-archify-pipeline.png)
 
-[Open the interactive pipeline →](https://sathack-vigil-fuse.vercel.app/diagrams/fuse-scan.html) · [Standalone HTML source](site/diagrams/fuse-scan.html).
+[Open the interactive pipeline â†’](https://sathack-vigil-fuse.vercel.app/diagrams/fuse-scan.html) Â· [Standalone HTML source](site/diagrams/fuse-scan.html).
 
 Interactive workflow visualization generated with Archify. This preview captures the existing file; Archify is not a FUSE runtime dependency. [Third-party credits](docs/THIRD_PARTY_CREDITS.md) preserve its attribution and the embedded font notice.
 
@@ -72,7 +72,7 @@ The local CLI is the primary interface. The optional Go/Kubernetes foundation sc
 ## Evidence before verdicts
 
 ```text
-PRESENT ≠ BUILD_INCLUDED ≠ runtime execution ≠ physical accessibility
+PRESENT â‰  BUILD_INCLUDED â‰  runtime execution â‰  physical accessibility
 ```
 
 `PRESENT`, `BUILD_INCLUDED` and `UNKNOWN` are Clang coverage terms. A selected translation unit that parses is build-included evidence within that database, not proof that its functions execute. Runtime execution and physical accessibility are separate questions, not claimed coverage states.
@@ -171,8 +171,8 @@ Optional analyzers provide evidence. FUSE validates and normalizes their output.
 ## Compiler-semantic C/C++ evidence
 
 ```text
-compile_commands.json → Clang LibTooling → AST observations
-                     → strict JSON contract → Python validation
+compile_commands.json â†’ Clang LibTooling â†’ AST observations
+                     â†’ strict JSON contract â†’ Python validation
 ```
 
 The opt-in producer preserves call sites, arguments, macro locations and selected-build inclusion. It rejects unsupported compiler arguments. It does not add symbolic execution, taint tracking or automatic vulnerability verdicts.
@@ -185,12 +185,12 @@ A scan with `--output-dir .fuse-results` writes:
 
 ```text
 .fuse-results/
-├── findings.txt
-├── findings.json
-└── findings.sarif
+â”œâ”€â”€ findings.txt
+â”œâ”€â”€ findings.json
+â””â”€â”€ findings.sarif
 ```
 
-JSON includes findings, coverage, inventories and input/artifact hashes within each stage's declared scope. Requested successful stages can also write `components.cdx.json`, `hardware-bom.cdx.json` or `ghidra-analysis.json`. These are conditional artifacts. [Report contract](docs/finding-schema.md) · [SBOM behavior](docs/sbom.md).
+JSON includes findings, coverage, inventories and input/artifact hashes within each stage's declared scope. Requested successful stages can also write `components.cdx.json`, `hardware-bom.cdx.json` or `ghidra-analysis.json`. These are conditional artifacts. [Report contract](docs/finding-schema.md) Â· [SBOM behavior](docs/sbom.md).
 
 One excerpt from the **controlled fixture scan** shown above:
 
@@ -219,13 +219,13 @@ Explicit Docker mode uses trusted local digest-pinned images, read-only inputs, 
 
 </details>
 
-[Threat model](docs/threat-model.md) · [Analyzer isolation settings](docs/usage.md#run-optional-analyzers-in-docker).
+[Threat model](docs/threat-model.md) Â· [Analyzer isolation settings](docs/usage.md#run-optional-analyzers-in-docker).
 
 ## Built to be testable
 
-The checked-in CI defines Linux tests on Python 3.11–3.14, Windows/macOS tests on Python 3.11, Ruff, strict Mypy, documentation checks and Mermaid rendering, coverage, package build/install checks and Docker fixture integration. Separate workflows cover CodeQL and selected external analyzers. Workflow configuration is not a claim that every current job passed; the CI badge links to live results.
+The checked-in CI defines Linux tests on Python 3.11â€“3.14, Windows/macOS tests on Python 3.11, Ruff, strict Mypy, documentation checks and Mermaid rendering, coverage, package build/install checks and Docker fixture integration. Separate workflows cover CodeQL and selected external analyzers. Workflow configuration is not a claim that every current job passed; the CI badge links to live results.
 
-Native rules have positive and secure controls. Contract tests cover malformed evidence, bounds and architecture dependencies. The Clang corpus and operator probe have separate validation records. [Contributing](CONTRIBUTING.md) · [Compatibility and CI evidence](docs/compatibility.md).
+Native rules have positive and secure controls. Contract tests cover malformed evidence, bounds and architecture dependencies. The Clang corpus and operator probe have separate validation records. [Contributing](CONTRIBUTING.md) Â· [Compatibility and CI evidence](docs/compatibility.md).
 
 Historical [repository performance samples](docs/experiments/repository-scan-performance-matrix-2026-10-31.md) record pinned scopes, warm-up/repeats, memory sampling and partial coverage. They are descriptive hosted-runner measurements, not a speed ranking or current-release benchmark. The [0.4.0 completion record](docs/PROJECT_COMPLETION.md) is historical release evidence, not certification of newer features. Independent human adjudication and field accuracy remain pending.
 
@@ -257,17 +257,17 @@ Development has moved beyond the earlier maintenance-only completion declaration
 - Digital-twin fault injection beyond today's static model/export boundary.
 - Analyzer workers beyond the Kubernetes identity probe, with validated evidence handoff.
 
-[Adaptive expansion scope](docs/research/adaptive-expansion-scope.md) · [Roadmap](docs/roadmap.md) · [Native engine decision](docs/native-engine-strategy.md).
+[Adaptive expansion scope](docs/research/adaptive-expansion-scope.md) Â· [Roadmap](docs/roadmap.md) Â· [Native engine decision](docs/native-engine-strategy.md).
 
 ## Documentation
 
 | Intent | Start here |
 | --- | --- |
-| **Use FUSE** | [Usage](docs/usage.md) · [Configuration and integrations](docs/integrations.md) · [Compatibility](docs/compatibility.md) |
-| **Understand evidence** | [Architecture](docs/architecture.md) · [Finding model](docs/finding-schema.md) · [Threat model](docs/threat-model.md) · [Limitations](docs/limitations.md) |
-| **Choose analyzers** | [Ghidra](docs/ghidra-analysis.md) · [Firmware](docs/firmware-analysis.md) · [Hardware](docs/hardware-analysis.md) · [Clang semantics](docs/cpp-semantic-analysis.md) |
-| **Inspect engineering** | [Benchmarks](docs/benchmarks.md) · [Experiments](docs/experiments/) · [Roadmap](docs/roadmap.md) · [Traceability](docs/traceability.md) |
-| **Review research** | [Repository scans](reports/repository-scans/README.md) · [Embedded evaluation](reports/evaluation/2026-11-14/README.md) · [Independent evaluation protocol](docs/research/independent-evaluation-protocol.md) |
+| **Use FUSE** | [Usage](docs/usage.md) Â· [Configuration and integrations](docs/integrations.md) Â· [Compatibility](docs/compatibility.md) |
+| **Understand evidence** | [Architecture](docs/architecture.md) Â· [Finding model](docs/finding-schema.md) Â· [Threat model](docs/threat-model.md) Â· [Limitations](docs/limitations.md) |
+| **Choose analyzers** | [OPA/Rego policy](docs/policy-as-code.md) · [Ghidra](docs/ghidra-analysis.md) Â· [Firmware](docs/firmware-analysis.md) Â· [Hardware](docs/hardware-analysis.md) Â· [Clang semantics](docs/cpp-semantic-analysis.md) |
+| **Inspect engineering** | [Benchmarks](docs/benchmarks.md) Â· [Experiments](docs/experiments/) Â· [Roadmap](docs/roadmap.md) Â· [Traceability](docs/traceability.md) |
+| **Review research** | [Repository scans](reports/repository-scans/README.md) Â· [Embedded evaluation](reports/evaluation/2026-11-14/README.md) Â· [Independent evaluation protocol](docs/research/independent-evaluation-protocol.md) |
 
 ## Limitations
 
@@ -277,8 +277,8 @@ There is no physical-device or hardware-in-the-loop validation. Controlled fixtu
 
 ## License and attribution
 
-**FUSE · Firmware & Unified Security Engine · Team VIGIL.** Copyright © 2026 Shantanu.
+**FUSE Â· Firmware & Unified Security Engine Â· Team VIGIL.** Copyright Â© 2026 Shantanu.
 
 Source-available under the **VIGIL-FUSE Restricted Use License v1.2**, not an OSI-approved open-source license. Use, private modifications, analysis outputs and redistribution have distinct terms; read [LICENSE](LICENSE) before distributing copies or publishing modifications. Earlier license grants remain governed by the terms attached to those copies.
 
-[Third-party credits](docs/THIRD_PARTY_CREDITS.md) cover external tools and visual assets. Referencing a tool or standard does not imply endorsement or affiliation. [Security reporting](SECURITY.md) · [Contributing](CONTRIBUTING.md).
+[Third-party credits](docs/THIRD_PARTY_CREDITS.md) cover external tools and visual assets. Referencing a tool or standard does not imply endorsement or affiliation. [Security reporting](SECURITY.md) Â· [Contributing](CONTRIBUTING.md).

@@ -240,6 +240,14 @@
       "limitations": ["SVD derived entries, arrays and clusters are omitted", "BOM matches are unverified candidates", "Renode export has not been execution-tested", "No firmware execution or QEMU export"]
     },
     {
+      "id": "policy.rego",
+      "input": "Normalized FUSE evidence and an explicit Rego policy",
+      "profile": null,
+      "label": "experimental",
+      "scope": "Optionally evaluates bounded, versioned FUSE evidence with a locally installed OPA executable.",
+      "limitations": ["OPA is optional and is never installed by FUSE", "Policy results are separate from FUSE findings and do not assign vulnerability severity", "Unsupported or incomplete evidence is unknown", "No formal certification or compliance status is claimed"]
+    },
+    {
       "id": "runtime.lab-validation",
       "input": "Physical device or controlled lab evidence",
       "profile": null,
