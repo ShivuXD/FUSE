@@ -28,6 +28,7 @@ from .analyzers import (
 from .baseline import create_baseline, diff_baseline, suppress_finding, unsuppress_finding
 from .build_context import inspect_compilation_database, inspect_platformio
 from .config import ScanConfig, load_config
+from .component_graph import build_component_graph
 from .ghidra_analyzer import (
     GHIDRA_DEFAULT_TIMEOUT_SECONDS,
     GHIDRA_MAXIMUM_INPUT_BYTES,
@@ -42,6 +43,7 @@ from .platform_context import detect_project_frameworks, resolve_build_dir
 from .product_context import import_vex, inspect_provenance, validate_package_purl
 from .profiles import PROFILES, get_profile
 from .reporting import to_json, to_text
+from .repo_dna import inspect_repository
 from .report_pdf import write_pdf_report
 from .rule_execution import (
     DEFAULT_RULE_TIMEOUT_SECONDS,
@@ -145,6 +147,8 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--version", action="version", version=f"FUSE {__version__}")
     commands = parser.add_subparsers(dest="command")
+    inspect_parser = commands.add_parser("inspect", help="inspect repository characteristics")
+    inspect_parser.add_argument("target", type=Path)
     doctor_parser = commands.add_parser(
         "doctor", help="show runtime and optional analyzer availability"
     )
@@ -1465,6 +1469,16 @@ def main(
     if args.command is None:
         parser.print_help()
         return 0
+    if args.command == "inspect":
+        try:
+            dna = inspect_repository(args.target)
+            _safe_print(
+                json.dumps({**dna, "component_graph": build_component_graph(dna)}, indent=2)
+            )
+            return 0
+        except (OSError, ValueError) as error:
+            _safe_print(f"vigil-fuse: {error}", file=sys.stderr)
+            return 2
     if args.command == "doctor":
         try:
             config_path = args.config.expanduser() if args.config else None
