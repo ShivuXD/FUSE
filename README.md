@@ -9,14 +9,13 @@ Created by Team VIGIL.
 FUSE is a CLI-first analysis tool for embedded and IoT project repositories. It checks selected source and configuration files, inventories hardware and firmware candidates, reads selected build metadata, and can run optional dependency or firmware analyzers. Reports include evidence and explicit coverage so a static signal is not mistaken for a confirmed vulnerability.
 
 [![CI](https://img.shields.io/github/actions/workflow/status/ShivuXD/fuse/ci.yml?branch=main&label=CI)](https://github.com/ShivuXD/fuse/actions/workflows/ci.yml)
-[![Evaluation report](https://img.shields.io/badge/evaluation-PDF%20report-C84335?logo=adobeacrobatreader&logoColor=white)](reports/repository-scans/multi-repository-2026-11-14/README.md)
-[![PyPI version](https://img.shields.io/pypi/v/vigil-fuse.svg?logo=pypi&label=PyPI)](https://pypi.org/project/vigil-fuse/)
+[![Evaluation report](https://img.shields.io/badge/evaluation-PDF%20report-C84335?logo=adobeacrobatreader&logoColor=white)](https://shivuxd.github.io/FUSE/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
 [![Custom restricted-use license v1.2](https://img.shields.io/badge/license-custom%20restricted%20use%20v1.2-7c3aed)](LICENSE)
 
 **Alpha · 0.4.0**
 
-**Maintenance status:** FUSE 0.4.0 was published on 2026-11-15. Initial feature development is complete. Maintenance is limited to confirmed defects, security fixes, dependency and platform compatibility, packaging, documentation, and regression tests. See [project completion and maintenance](docs/PROJECT_COMPLETION.md).
+**Development status:** The 0.4.0 baseline is available in this repository. New adaptive analysis work is in development. The [completion record](docs/PROJECT_COMPLETION.md) describes the earlier scope.
 
 Latest [binary detection comparison](reports/evaluation/2026-11-15/binary-detection/README.md): the three real ESP-IDF rebuilds retained partial inventories and completed the independent security traversal without findings. Their ELF hashes differ from the immutable November 14 artifacts, so this is not a byte-identical rerun. See the [November 14 baseline](reports/evaluation/2026-11-14/README.md). Independent human review is still pending.
 
@@ -25,7 +24,15 @@ Latest [binary detection comparison](reports/evaluation/2026-11-15/binary-detect
 Requires Python 3.11 or newer. The native scanner has no runtime dependencies.
 
 ```sh
-pipx install vigil-fuse==0.4.0
+git clone https://github.com/ShivuXD/FUSE.git
+cd FUSE
+python -m venv .venv
+```
+
+Activate the environment using `.venv\Scripts\Activate.ps1` in PowerShell or `source .venv/bin/activate` on Linux and macOS. Then install and run FUSE:
+
+```sh
+python -m pip install .
 vigil-fuse
 vigil-fuse doctor
 vigil-fuse scan path/to/embedded-project --plan
@@ -38,7 +45,7 @@ A normal scan writes `findings.json`, `findings.txt`, and `findings.sarif` to `.
 
 See the [usage guide](docs/usage.md) for setup, scan options, optional analyzers, and report review.
 
-Install the published [PyPI package](https://pypi.org/project/vigil-fuse/) or browse this repository's source and documentation.
+Install from this repository using the steps above.
 
 ## How a scan works
 
@@ -115,7 +122,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for repository setup and [rule developmen
 
 ## License status
 
-FUSE is a standalone project created by Team VIGIL. It is source-available under the custom restricted-use license, version 1.2 (see [LICENSE](LICENSE)), with copyright held by Shantanu. The license permits personal, educational, research, internal, and commercial use; private modifications; and publication of analysis outputs. Only unmodified official releases may be redistributed through PyPI and compatible mirrors. Other redistribution, public forks, and published modifications require written permission from Shantanu. This is not an OSI-approved open-source license and has not received external legal review. Version [0.4.0 is published on PyPI](https://pypi.org/project/vigil-fuse/0.4.0/). PyPI Support issue [#12999](https://github.com/pypi/support/issues/12999) remains open. A successful upload is not PyPI policy approval.
+FUSE is a standalone project created by Team VIGIL. It is source-available under the custom restricted-use license, version 1.2 (see [LICENSE](LICENSE)), with copyright held by Shantanu. The license permits personal, educational, research, internal, and commercial use; private modifications; and publication of analysis outputs. Redistribution and published modifications are restricted. Read the license for its exact terms. This is not an OSI-approved open-source license and has not received external legal review.
 
 An earlier public snapshot included MIT terms at [commit `ec91524`](https://github.com/VIGIL-IoT/VIGIL-FUSE/commit/ec91524). This license does not revoke permissions already granted for copies made available under those earlier terms. Review the license attached to the specific version you use.
 
@@ -127,4 +134,4 @@ Because this repository is public on GitHub, GitHub's [Terms of Service](https:/
 
 ## Multi-repository evaluation report
 
-Read the [LaTeX evaluation and reproduction record](reports/repository-scans/multi-repository-2026-11-14/README.md) or the included [PDF report](reports/repository-scans/multi-repository-2026-11-14/publication/report.pdf). Four pinned scopes yielded three static review candidates across 4,347 scanned files, with coverage limitations recorded.
+Read the [LaTeX evaluation and reproduction record](reports/repository-scans/multi-repository-2026-11-14/README.md) or the [PDF report on GitHub Pages](https://shivuxd.github.io/FUSE/report.pdf). Four pinned scopes yielded three static review candidates across 4,347 scanned files, with coverage limitations recorded.
