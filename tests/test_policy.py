@@ -380,7 +380,7 @@ class PolicyEvaluationTests(unittest.TestCase):
             detail="not installed",
         )
         with (
-            patch("vigil_fuse.cli.inspect_tools", return_value=()),
+            patch("vigil_fuse.cli.inspect_environment", return_value=()),
             patch("vigil_fuse.cli.inspect_ghidra", return_value=ghidra),
             patch(
                 "vigil_fuse.cli.doctor_status",
