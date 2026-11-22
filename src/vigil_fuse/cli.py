@@ -1535,7 +1535,7 @@ def _interactive_shell() -> int:
         try:
             command = read_command().strip()
         except (EOFError, KeyboardInterrupt):
-            _safe_print("\nSession ended. â€” VIGIL")
+            _safe_print("\nSession ended. — VIGIL")
             return 0
 
         if not command:
@@ -1546,7 +1546,7 @@ def _interactive_shell() -> int:
         tail = tail.strip()
 
         if name in {"/exit", "exit", "quit", "/quit"}:
-            _safe_print("\nSession ended. â€” VIGIL")
+            _safe_print("\nSession ended. — VIGIL")
             return 0
 
         if name in {"/help", "help", "?"}:
@@ -1570,7 +1570,7 @@ def _interactive_shell() -> int:
             continue
 
         if name in {"/version", "version"}:
-            _safe_print(f"FUSE v{__version__} â€” by VIGIL")
+            _safe_print(f"FUSE v{__version__} — by VIGIL")
             continue
 
         if name in {"/clear", "clear"}:
