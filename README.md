@@ -121,7 +121,7 @@ vigil-fuse scan ./project --output-dir .fuse-results
 
 Replace `./project` with your local target. On Windows, activation is optional: use `.\.venv\Scripts\python.exe -m pip install .` and `.\.venv\Scripts\vigil-fuse.exe doctor` directly.
 
-[Detailed setup and configuration](docs/usage.md). Optional analyzers require separate trusted installations.
+[Detailed setup and configuration](docs/usage.md). Optional analyzers require separate trusted installations. `vigil-fuse setup --recommended --dry-run` previews the explicit user-local setup plan. No setup mode downloads a model.
 
 ## CLI usage
 
@@ -136,7 +136,7 @@ vigil-fuse scan firmware.elf --ghidra --output-dir .fuse-results
 
 OSV advisory lookup can use the network; use `--no-network` for strict offline vulnerability checks with the required local database. Other opt-ins include `--git-history`, `--firmware`, `--hardware-bom` and `--hardware-netlist`. `--fail-on high` supports CI thresholds; baseline commands compare reports and apply reasoned suppressions. See `vigil-fuse scan --help` and [usage](docs/usage.md).
 
-Run `vigil-fuse` in a terminal for the persistent shell. `/help`, `/status`, `/target`, `/profile`, `/plan`, `/scan`, `/findings` and `/exit` use the same scan engine. Install `python -m pip install ".[cliui]"` for completion and session-only command-name history; basic input works without it.
+Run `vigil-fuse` in a terminal for the persistent shell. `/help`, `/doctor`, `/pwd`, `/cd PATH`, `/scan PATH [OPTIONS]`, `/baseline`, `/version`, `/clear` and `/exit` are supported by the active shell. `/scan . --plan` previews the current folder without scanning. Install `python -m pip install ".[cliui]"` for completion and session-only command-name history; basic input works without it.
 
 ## What FUSE analyzes
 
@@ -150,6 +150,8 @@ Labels follow the [machine-readable support matrix](src/vigil_fuse/support-matri
 | Firmware | Candidate filenames; selected image with Binwalk or Ghidra | Detected inventory; experimental signatures and static binary evidence |
 | Hardware | Design/CAD/HDL filenames; CSV/TSV BOM; KiCad XML netlist | Detected inventory; experimental BOM import and debug-connectivity candidates |
 | Supply chain | CycloneDX/SPDX, OSV, Git history, VEX and SLSA digest context | Basic advisory matching; experimental history and product-context adapters |
+| RTL | `.v`, `.vh`, `.sv`, `.svh`, Yosys references and FPGA constraints | Experimental bounded structure and four candidate checks; no elaboration or silicon proof |
+| Policy | Explicit OPA/Rego policy over normalized scan evidence | Separate PASS/FAIL/UNKNOWN artifact; policy failures are not vulnerabilities |
 | Workflows | Selected GitHub Actions permission, reference and interpolation patterns | Basic static checks |
 | Research foundations | Device-tree/SVD parsing, cFE bus evidence, resilience indicators and Renode export | Experimental Python APIs; partial evidence, no device execution |
 
@@ -227,7 +229,7 @@ The checked-in CI defines Linux tests on Python 3.11–3.14, Windows/macOS tests
 
 Native rules have positive and secure controls. Contract tests cover malformed evidence, bounds and architecture dependencies. The Clang corpus and operator probe have separate validation records. [Contributing](CONTRIBUTING.md) · [Compatibility and CI evidence](docs/compatibility.md).
 
-Historical [repository performance samples](docs/experiments/repository-scan-performance-matrix-2026-10-31.md) record pinned scopes, warm-up/repeats, memory sampling and partial coverage. They are descriptive hosted-runner measurements, not a speed ranking or current-release benchmark. The [0.4.0 completion record](docs/PROJECT_COMPLETION.md) is historical release evidence, not certification of newer features. Independent human adjudication and field accuracy remain pending.
+Historical [repository performance samples](docs/experiments/repository-scan-performance-matrix-2026-10-31.md) record pinned scopes, warm-up/repeats, memory sampling and partial coverage. They are descriptive hosted-runner measurements, not a speed ranking or current-release benchmark. The [0.4.0 completion record](docs/PROJECT_COMPLETION.md) is historical release evidence, not certification of newer features. Independent human adjudication and field accuracy remain pending. A later pinned NVIDIA/edk2-nvidia run at `cb638768ec174bb2041f87569409c53e4af4292e` selected and scanned 1,223 files with zero skips and one medium FUSE001 candidate, high confidence, unknown applicability, not validated. Consolidation preserved its fingerprint and evidence states; this is not a confirmed NVIDIA vulnerability. See the [audit](docs/final-consolidation-audit.md).
 
 ## Built polyglot, intentionally
 
@@ -238,21 +240,23 @@ Historical [repository performance samples](docs/experiments/repository-scan-per
 | Go | Experimental Kubernetes identity-probe scheduling and operational state; no security classification |
 | Java | FUSE-owned `FuseExport.java` bridge inside an external Ghidra installation |
 | C / C++ fixtures | Controlled analysis targets and regression evidence, not runtime dependencies |
+| R | Optional offline statistical scripts over manually prepared CSV data |
+| Julia | Optional synthetic experiment planning and simulation research |
 
-Numerical and statistical research languages are not runtime components. Rust is explicitly deferred under [`NO_RUST_NEEDED_YET`](docs/native-engine-strategy.md); no Rust or Zig implementation is required. [Platform boundaries](docs/architecture/polyglot-platform.md).
+Numerical and statistical research languages are not runtime components. Rust is explicitly deferred under [`NO_RUST_NEEDED_YET`](docs/native-engine-strategy.md); Zig remains `NO_ZIG_NEEDED`. Neither toolchain is required. Optional [R](research/R/README.md) and [Julia](research/julia/README.md) research scripts do not run during scans. [Platform boundaries](docs/architecture/polyglot-platform.md).
 
 ## Current state
 
 **Alpha, source version 0.5.1.** Current `main` includes the core scanner, reports, interactive shell, optional firmware/hardware integrations, passive adaptive planning foundations, the experimental Clang evidence module and the probe-only Go operator. Source version does not establish a matching PyPI release.
 
-Development has moved beyond the earlier maintenance-only completion declaration. The Clang stage is not automatic scan policy, and Kubernetes job success is not security success. Separate installer, policy and numerical/statistical research work is not advertised as implemented support. See [execution limits](cluster/fuse-operator/README.md) and the [roadmap](docs/roadmap.md).
+Development has moved beyond the earlier maintenance-only completion declaration. The Clang stage is not automatic scan policy, and Kubernetes job success is not security success. Explicit setup, optional Rego evaluation, bounded RTL analysis, embedded applicability reports, optional R/Julia research, and local reasoning are integrated. Optional local reasoning operates over deterministic FUSE evidence and writes a separate validated explanation artifact. It cannot create or change findings. The installed Qwen smoke produced valid JSON but failed UNKNOWN acknowledgement validation; rejected output is not accepted as evidence. See [execution limits](cluster/fuse-operator/README.md) and the [roadmap](docs/roadmap.md).
 
 ## Where FUSE can go next
 
 **Future / research**, not promised capabilities:
 
 - Richer selected-build and applicability evidence with preserved uncertainty.
-- Policy-as-code and reviewed correlation across evidence classes.
+- Broader policy coverage and reviewed correlation across evidence classes.
 - Stronger spacecraft protocol and silicon trust evidence beyond current parsing foundations.
 - Digital-twin fault injection beyond today's static model/export boundary.
 - Analyzer workers beyond the Kubernetes identity probe, with validated evidence handoff.
@@ -263,15 +267,15 @@ Development has moved beyond the earlier maintenance-only completion declaration
 
 | Intent | Start here |
 | --- | --- |
-| **Use FUSE** | [Usage](docs/usage.md) · [Configuration and integrations](docs/integrations.md) · [Compatibility](docs/compatibility.md) |
+| **Use FUSE** | [Installation](docs/installation.md) · [Consolidation audit](docs/final-consolidation-audit.md) · [Usage](docs/usage.md) · [Configuration and integrations](docs/integrations.md) · [Compatibility](docs/compatibility.md) |
 | **Understand evidence** | [Architecture](docs/architecture.md) · [Finding model](docs/finding-schema.md) · [Threat model](docs/threat-model.md) · [Limitations](docs/limitations.md) |
-| **Choose analyzers** | [OPA/Rego policy](docs/policy-as-code.md) · [Ghidra](docs/ghidra-analysis.md) · [Firmware](docs/firmware-analysis.md) · [Hardware](docs/hardware-analysis.md) · [Clang semantics](docs/cpp-semantic-analysis.md) |
+| **Choose analyzers** | [RTL](docs/rtl-security-analysis.md) · [Local reasoning](docs/local-reasoning.md) · [OPA/Rego policy](docs/policy-as-code.md) · [Ghidra](docs/ghidra-analysis.md) · [Firmware](docs/firmware-analysis.md) · [Hardware](docs/hardware-analysis.md) · [Clang semantics](docs/cpp-semantic-analysis.md) |
 | **Inspect engineering** | [Benchmarks](docs/benchmarks.md) · [Experiments](docs/experiments/) · [Roadmap](docs/roadmap.md) · [Traceability](docs/traceability.md) |
 | **Review research** | [Repository scans](reports/repository-scans/README.md) · [Embedded evaluation](reports/evaluation/2026-11-14/README.md) · [Independent evaluation protocol](docs/research/independent-evaluation-protocol.md) |
 
 ## Limitations
 
-A clean report means enabled checks did not match within the scanned scope. Seven native rules are narrow indicators, not a complete language or vulnerability analysis. Build metadata does not prove shipment; advisory matches do not prove vulnerable code runs. Static firmware evidence does not prove exploitability, and hardware inventories do not validate a board. Unsupported inputs and unavailable stages can leave partial coverage.
+A clean report means enabled checks did not match within the scanned scope. Seven core native rules and four RTL candidate rules are narrow indicators, not a complete language or vulnerability analysis. Build metadata does not prove shipment; advisory matches do not prove vulnerable code runs. Static firmware evidence does not prove exploitability, and hardware inventories do not validate a board. Unsupported inputs and unavailable stages can leave partial coverage.
 
 There is no physical-device or hardware-in-the-loop validation. Controlled fixtures do not establish independent field precision or recall. Read the [full limitations](docs/limitations.md) before interpreting results.
 

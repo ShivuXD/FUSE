@@ -42,7 +42,7 @@ Third-party notices cover Ghidra, the vendored Anatomy kit, Archify output, and 
 
 ## Maintenance policy
 
-Initial feature development is complete and FUSE is in maintenance mode. Maintenance permits confirmed defect and security fixes, dependency and supported-platform compatibility, packaging fixes, documentation corrections, and regression tests. New analyzers, rule families, research features, firmware emulation, hardware programming, and UI redesigns require separately approved future scope.
+This is a historical 0.4.0 declaration. Source development resumed in 0.5.x; see [current consolidation](final-consolidation-audit.md). At the time of that release, initial feature development was complete and FUSE entered maintenance mode. Maintenance permits confirmed defect and security fixes, dependency and supported-platform compatibility, packaging fixes, documentation corrections, and regression tests. New analyzers, rule families, research features, firmware emulation, hardware programming, and UI redesigns require separately approved future scope.
 
 ## Independent evaluation status
 

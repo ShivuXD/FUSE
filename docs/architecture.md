@@ -196,3 +196,7 @@ flowchart LR
 FUSE examines files and metadata. It has no hardware connection and does not verify that a candidate net is routed, populated, accessible, or enabled on a physical device.
 
 FUSE reports static review candidates with evidence and scope limits. Confirming a candidate requires validation in the relevant target context.
+
+## Consolidated source boundary
+
+Source 0.5.1 includes explicit setup, bounded RTL analysis, separate Rego decisions, bounded reasoning context and optional local explanations. R and Julia remain disconnected research scripts. UNKNOWN, partial coverage and absent optional tools stay visible. See the [final consolidation audit](final-consolidation-audit.md) for module, test, branch and validation details.

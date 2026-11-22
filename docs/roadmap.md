@@ -104,3 +104,7 @@ FUSE is the inspection and evidence-orchestration tool in the [VIGIL-IoT suite](
 3. A secure fixture produces no finding.
 4. Automated tests cover the positive case, negative case, and important exclusions.
 5. The rule states when its signal is only static and does not claim runtime exploitability without evidence.
+
+## Consolidated source boundary
+
+Source 0.5.1 includes explicit setup, bounded RTL analysis, separate Rego decisions, bounded reasoning context and optional local explanations. R and Julia remain disconnected research scripts. UNKNOWN, partial coverage and absent optional tools stay visible. See the [final consolidation audit](final-consolidation-audit.md) for module, test, branch and validation details.

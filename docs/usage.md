@@ -2,7 +2,7 @@
 
 FUSE is a local command-line tool for reviewing embedded and IoT project sources, configuration, hardware inventories, dependency inputs, and selected firmware images. It gathers evidence for review. A finding is not proof that a deployed device is vulnerable.
 
-## Install from PyPI
+## Historical 0.4.0 package
 
 The published [`vigil-fuse` package](https://pypi.org/project/vigil-fuse/) requires Python 3.11 or newer. Install the isolated command-line tool with pipx:
 
@@ -18,7 +18,7 @@ python -m pip install vigil-fuse==0.4.0
 
 For pipx setup instructions on your operating system, see the [pipx installation guide](https://pipx.pypa.io/stable/installation/).
 
-## Install from the repository
+## Install the current 0.5.1 source
 
 FUSE requires Python 3.11 or newer. From the repository root, create and activate a virtual environment, then install the project in editable mode.
 
@@ -47,7 +47,7 @@ vigil-fuse doctor
 
 The native scanner has no runtime dependencies. Optional analyzer stages need their own executables on `PATH`.
 
-Windows-specific discovery and verified user-local provisioning are documented in the [Windows setup guide](windows-setup.md). This bootstrap layer is separate from the Python CLI; `vigil-fuse setup` is not part of this release.
+Windows-specific discovery and verified user-local provisioning are documented in the [Windows setup guide](windows-setup.md). The Python `setup` coordinator is implemented in the 0.5.1 source tree. `vigil-fuse setup --recommended --dry-run` previews its manifest without downloads. The packaged PowerShell helper remains an explicitly invoked, separate interface.
 
 ## Interactive terminal launch
 

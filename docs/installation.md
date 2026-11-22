@@ -2,7 +2,7 @@
 
 FUSE's core scanner requires Python 3.11 or newer and has no third-party Python runtime dependencies. The setup command prepares optional external analysis tools separately.
 
-## Install the published package
+## Historical package installation
 
 The published 0.4.0 package does not include the setup command from this branch. Install that version with:
 
@@ -12,17 +12,17 @@ vigil-fuse --version
 vigil-fuse doctor
 ```
 
-## Preview the upcoming installer
+## Install and inspect the current source
 
-The following flow is implemented on the `feat/pre-pypi-installer` branch and is not in the published 0.4.0 package. After the next package release, the intended user flow is:
+The setup coordinator is integrated in source version 0.5.1. From a checkout, install it into a virtual environment; this does not assert a matching PyPI release:
 
 ```powershell
-python -m pip install vigil-fuse
-vigil-fuse setup --recommended
+python -m pip install .
+vigil-fuse setup --recommended --dry-run
 vigil-fuse doctor
 ```
 
-To try this branch before release, build and install its wheel in a fresh virtual environment. The root README and `docs/releasing.md` describe the local validation commands.
+For isolated validation, build and install its wheel in a fresh virtual environment. The root README and `docs/releasing.md` describe the local validation commands.
 
 ## Setup modes
 

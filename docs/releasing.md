@@ -1,13 +1,13 @@
 # PRE-PyPI release workflow
 
-This branch prepares packaging and local validation. It does not publish to TestPyPI or PyPI, and its CI has no publishing job.
+This source tree prepares packaging and local validation. It does not publish to TestPyPI or PyPI, and its CI has no publishing job.
 
 ## Build and validate locally
 
 From a clean checkout with Python 3.11 or newer:
 
 ```powershell
-python -m pip install "build>=1.2,<2" "twine>=6,<7"
+python -m pip install "build>=1.2,<2" "twine>=7,<8"
 python -m build
 python -c "import pathlib,subprocess,sys; files=[str(p) for p in pathlib.Path('dist').iterdir() if p.suffix in {'.whl','.gz'}]; subprocess.run([sys.executable,'-m','twine','check',*files],check=True)"
 python scripts/verify_installed_wheel.py

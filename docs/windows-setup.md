@@ -11,7 +11,7 @@ python -m pip install vigil-fuse
 vigil-fuse doctor
 ```
 
-The setup command is part of the upcoming installer branch, not the currently published 0.4.0 package. When available in a release, use:
+The setup command is integrated in source 0.5.1. After installing this checkout or its locally built wheel, use:
 
 ```powershell
 vigil-fuse setup --recommended
@@ -90,4 +90,4 @@ No install command elevates privileges, edits user or machine `PATH`, changes ex
 
 ## Platform scope
 
-This stage targets Windows PowerShell 5.1 and PowerShell 7. It does not implement Bash or macOS setup scripts. Equivalent discovery and user-local provisioning can be added after the Windows interface is integrated with the Python CLI.
+This stage targets Windows PowerShell 5.1 and PowerShell 7. The Python coordinator supplies cross-platform discovery and pinned user-local provisioning. This separate PowerShell helper is not invoked automatically by Python setup; its explicit URI, version and digest arguments remain operator supplied.
