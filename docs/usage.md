@@ -47,6 +47,8 @@ vigil-fuse doctor
 
 The native scanner has no runtime dependencies. Optional analyzer stages need their own executables on `PATH`.
 
+Windows-specific discovery and verified user-local provisioning are documented in the [Windows setup guide](windows-setup.md). This bootstrap layer is separate from the Python CLI; `vigil-fuse setup` is not part of this release.
+
 ## Interactive terminal launch
 
 FUSE preserves the terminal background and displays its own banner. Narrow terminals use a compact title, legacy encodings use ASCII, and `NO_COLOR` disables ANSI colors. Explicit commands and redirected output omit decoration.

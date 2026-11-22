@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Callable, Literal, TextIO, TypedDict
 
 from . import __version__
+from .applicability import analyze_report, write_report as write_applicability_report
 from .analyzer_sandbox import AnalyzerSandbox, parse_image_assignments
 from .analyzer_runtime import (
     analyzer_execution_detail,
@@ -283,6 +284,21 @@ def _parser() -> argparse.ArgumentParser:
         type=Path,
         default=Path(".fuse-results/suppressions.json"),
         help="suppression JSON path",
+    )
+    applicability_parser = commands.add_parser(
+        "applicability", help="assess dependency findings against recorded product evidence"
+    )
+    applicability_commands = applicability_parser.add_subparsers(
+        dest="applicability_action", required=True
+    )
+    applicability_analyze = applicability_commands.add_parser(
+        "analyze", help="compose a conservative applicability report from a FUSE JSON report"
+    )
+    applicability_analyze.add_argument(
+        "--report", required=True, type=Path, help="source FUSE findings.json report"
+    )
+    applicability_analyze.add_argument(
+        "--output", type=Path, help="write applicability JSON to this path instead of stdout"
     )
     scan_parser = commands.add_parser(
         "scan", help="analyze a project, SBOM, or supported firmware input"
@@ -658,6 +674,14 @@ def _doctor(
                 "impact": "Optional reasoning only; deterministic scans are unaffected.",
             },
             "core_python_dependencies": [],
+            "clang_semantic": {
+                "category": "OPTIONAL_HEAVY",
+                "status": "AVAILABLE"
+                if clang_status.status == "completed"
+                else clang_status.status.upper(),
+                "version": clang_status.version,
+                "detail": clang_status.detail,
+            },
             "optional_python_capabilities": {
                 "esp_idf_yaml_parser": {
                     "category": "RECOMMENDED",
@@ -1981,6 +2005,20 @@ def main(
                 args.format,
                 args.fail_on_new,
             )
+        except (OSError, ValueError) as error:
+            _safe_print(f"vigil-fuse: {error}", file=sys.stderr)
+            return 2
+    if args.command == "applicability":
+        try:
+            applicability_result = analyze_report(args.report)
+            if args.output:
+                write_applicability_report(args.report, args.output, applicability_result)
+                _safe_print(f"Applicability report written to {args.output}", file=sys.stderr)
+            else:
+                sys.stdout.write(
+                    json.dumps(applicability_result, indent=2, ensure_ascii=False) + "\n"
+                )
+            return 0
         except (OSError, ValueError) as error:
             _safe_print(f"vigil-fuse: {error}", file=sys.stderr)
             return 2

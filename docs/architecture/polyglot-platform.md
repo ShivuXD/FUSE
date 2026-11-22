@@ -35,3 +35,9 @@ FUSE inventories `.v`, `.vh`, `.sv`, and `.svh` files separately from FPGA proje
 The optional Verible syntax tool can provide structured tokens for source extraction. If it is absent or cannot parse a file, FUSE uses its built-in structural token parser. Neither backend elaborates a complete project. Literal Yosys `read_verilog` references can mark a present file `BUILD_INCLUDED`; otherwise the file remains `PRESENT`. The latter does not mean excluded.
 
 This path does not perform formal verification, gate-level proof, timing analysis, physical FPGA validation, or runtime validation. It does not claim that a selected source was programmed into a device, is reachable, or is physically exposed. See the [RTL analysis guide](../rtl-security-analysis.md) for evidence categories and backend limits.
+
+## Optional Julia research
+
+FUSE's existing Python scanner remains authoritative for findings and policy. Julia is an optional, disconnected research environment, not a normal scan dependency. It explores optimization and experiment-selection strategies and does not generate production security verdicts. Its recommendations require Python policy validation before any future analysis router could act on them. No integration is implemented here.
+
+The proposed division of responsibilities is Python for security intelligence and policy, Go for orchestration, C++ for semantic C/C++ analysis, C for firmware validation targets, Rust for optional measured acceleration, R for statistical validation, Julia for numerical research and experiment optimization, and Java for the Ghidra bridge. This describes architectural roles, not a claim that every proposed component currently exists.
