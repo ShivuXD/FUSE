@@ -289,3 +289,5 @@ There is no physical-device or hardware-in-the-loop validation. Controlled fixtu
 Source-available under the **VIGIL-FUSE Restricted Use License v1.2**, not an OSI-approved open-source license. Use, private modifications, analysis outputs and redistribution have distinct terms; read [LICENSE](LICENSE) before distributing copies or publishing modifications. Earlier license grants remain governed by the terms attached to those copies.
 
 [Third-party credits](docs/THIRD_PARTY_CREDITS.md) cover external tools and visual assets. Referencing a tool or standard does not imply endorsement or affiliation. [Security reporting](SECURITY.md) · [Contributing](CONTRIBUTING.md).
+
+Made by: Shantanu
