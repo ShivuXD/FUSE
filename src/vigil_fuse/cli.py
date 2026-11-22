@@ -674,6 +674,14 @@ def _doctor(
                 "impact": "Optional reasoning only; deterministic scans are unaffected.",
             },
             "core_python_dependencies": [],
+            "clang_semantic": {
+                "category": "OPTIONAL_HEAVY",
+                "status": "AVAILABLE"
+                if clang_status.status == "completed"
+                else clang_status.status.upper(),
+                "version": clang_status.version,
+                "detail": clang_status.detail,
+            },
             "optional_python_capabilities": {
                 "esp_idf_yaml_parser": {
                     "category": "RECOMMENDED",
