@@ -86,13 +86,17 @@ def main() -> int:
         )
         scan = json.loads(output.read_text(encoding="utf-8"))
         assert scan["tool"]["name"] == "FUSE"
-        assert Path(
-            run(
-                [str(python), "-c", "import vigil_fuse; print(vigil_fuse.__file__)"],
-                cwd=outside,
-                env=environment,
-            ).stdout.strip()
-        ).resolve().is_relative_to(environment_path.resolve())
+        assert (
+            Path(
+                run(
+                    [str(python), "-c", "import vigil_fuse; print(vigil_fuse.__file__)"],
+                    cwd=outside,
+                    env=environment,
+                ).stdout.strip()
+            )
+            .resolve()
+            .is_relative_to(environment_path.resolve())
+        )
         run(
             [str(python), "-m", "pip", "install", f"{wheels[0]}[test]"],
             cwd=outside,
