@@ -10,11 +10,11 @@ from pathlib import Path
 
 PERSONAL_PATH_PATTERNS = (
     re.compile(
-        rb"(?i)[a-z]:[/\\]+users[/\\]+(?!private(?:[/\\]|$))[a-z0-9._-]+"
+        rb"(?i)[a-z]:[/\\]+users[/\\]+(?!private(?:[/\\]|[\"']|$))[a-z0-9._-]+"
         rb"(?:[/\\][^\x00\r\n\t\"<>]*)?"
     ),
     re.compile(
-        rb"(?i)(?<![a-z]:)/(?:users|home)/(?!private(?:/|$))[a-z0-9._-]+"
+        rb"(?i)(?<![a-z]:)/(?:users|home)/(?!private(?:/|[\"']|$))[a-z0-9._-]+"
         rb"(?:/[^\x00\r\n\t\"<>]*)?"
     ),
 )
