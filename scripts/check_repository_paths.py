@@ -14,7 +14,7 @@ PERSONAL_PATH_PATTERNS = (
         rb"(?:[/\\][^\x00\r\n\t\"<>]*)?"
     ),
     re.compile(
-        rb"(?i)/(?:users|home)/(?!private(?:/|$))[a-z0-9._-]+"
+        rb"(?i)(?<![a-z]:)/(?:users|home)/(?!private(?:/|$))[a-z0-9._-]+"
         rb"(?:/[^\x00\r\n\t\"<>]*)?"
     ),
 )
