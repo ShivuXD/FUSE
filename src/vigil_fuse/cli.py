@@ -61,6 +61,7 @@ from .policy import (
 from .product_context import import_vex, inspect_provenance, validate_package_purl
 from .profiles import PROFILES, get_profile
 from .reporting import to_json, to_text
+from .reasoning.cli import add_commands, doctor_status, doctor_text, enrich_scan, run_command
 from .report_pdf import write_pdf_report
 from .rtl_analysis import inspect_rtl_backend
 from .rule_execution import (
@@ -179,6 +180,7 @@ def _parser() -> argparse.ArgumentParser:
     register_frontier_commands(commands)
     inspect_parser = commands.add_parser("inspect", help="inspect repository characteristics")
     inspect_parser.add_argument("target", type=Path)
+    add_commands(commands)
     doctor_parser = commands.add_parser(
         "doctor", help="show runtime and optional analyzer availability"
     )
@@ -287,6 +289,9 @@ def _parser() -> argparse.ArgumentParser:
     )
     scan_parser.add_argument(
         "target", nargs="?", default=".", help="project directory, file, SBOM, or firmware image"
+    )
+    scan_parser.add_argument(
+        "--reason", action="store_true", help="optionally explain completed findings locally"
     )
     scan_parser.add_argument("--config", type=Path, help="load scan options from a TOML file")
     scan_parser.add_argument("--profile", choices=tuple(PROFILES), help="input discovery profile")
@@ -614,6 +619,9 @@ def _doctor(
 
     _, clang_status = inspect_clang()
     checks = inspect_environment()
+    rtl_availability, rtl_backend, rtl_version, verible_status = inspect_rtl_backend()
+    reasoning_config = config.reasoning if config is not None else ScanConfig().reasoning
+    reasoning_status = doctor_status(reasoning_config)
     if output_format == "json":
         report = {
             "schema_version": 1,
@@ -629,6 +637,25 @@ def _doctor(
                 "system": platform.system(),
                 "release": platform.release(),
                 "architecture": platform.machine(),
+            },
+            "rtl_analyzer": {
+                "category": "CORE",
+                "status": rtl_availability,
+                "backend": rtl_backend,
+                "version": rtl_version,
+                "verible_parser_status": verible_status,
+            },
+            "local_reasoning": {
+                "category": "OPTIONAL_HEAVY",
+                "status": (
+                    "AVAILABLE"
+                    if reasoning_status["available"] and reasoning_status["installed"]
+                    else "OPTIONAL"
+                ),
+                "endpoint_status": ("AVAILABLE" if reasoning_status["available"] else "MISSING"),
+                "model": reasoning_config.model,
+                "model_status": "AVAILABLE" if reasoning_status["installed"] else "MISSING",
+                "impact": "Optional reasoning only; deterministic scans are unaffected.",
             },
             "core_python_dependencies": [],
             "optional_python_capabilities": {
@@ -714,6 +741,7 @@ def _doctor(
     ps = powershell_executable()
     if platform.system().casefold() == "windows":
         _safe_print(f"PowerShell: {ps or 'not found'}")
+    _safe_print(doctor_text(reasoning_config, reasoning_status), end="")
     _safe_print("Core scanner: available")
     _safe_print(
         "Native rule execution: isolated subprocess, "
@@ -1924,6 +1952,13 @@ def main(
         except (OSError, ValueError) as error:
             _safe_print(f"vigil-fuse: {error}", file=sys.stderr)
             return 2
+    if args.command in {"reason", "reasoning-context"}:
+        try:
+            config = load_config(args.config) if args.config else ScanConfig()
+            return run_command(args, config.reasoning)
+        except (OSError, ValueError) as error:
+            _safe_print(f"vigil-fuse: {error}", file=sys.stderr)
+            return 2
     if args.command == "baseline":
         try:
             if args.baseline_action == "create":
@@ -2341,7 +2376,29 @@ def main(
             present_scan_result(
                 result, output_dir or (args.output.resolve() if args.output else None)
             )
-        if _prompt_for_pdf:
+        if args.reason:
+            canonical_path = (
+                output_dir / "findings.json"
+                if output_dir is not None
+                else args.output
+                if args.format == "json"
+                else None
+            )
+            reasoning_path = (
+                output_dir / "reasoning.json"
+                if output_dir is not None
+                else args.output.with_suffix(".reasoning.json")
+                if args.output is not None
+                else Path(".fuse-results/reasoning.json")
+            )
+            enrich_scan(
+                to_json(result),
+                config.reasoning,
+                canonical_path,
+                reasoning_path,
+                show=args.format == "text",
+            )
+        if _prompt_for_pdf and output_dir is not None:
             try:
                 report_answer = input("Create a PDF report? [y/N] ").strip().casefold()
             except EOFError:
