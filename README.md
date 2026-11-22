@@ -265,7 +265,7 @@ Development has moved beyond the earlier maintenance-only completion declaration
 | --- | --- |
 | **Use FUSE** | [Usage](docs/usage.md) · [Configuration and integrations](docs/integrations.md) · [Compatibility](docs/compatibility.md) |
 | **Understand evidence** | [Architecture](docs/architecture.md) · [Finding model](docs/finding-schema.md) · [Threat model](docs/threat-model.md) · [Limitations](docs/limitations.md) |
-| **Choose analyzers** | [Ghidra](docs/ghidra-analysis.md) · [Firmware](docs/firmware-analysis.md) · [Hardware](docs/hardware-analysis.md) · [Clang semantics](docs/cpp-semantic-analysis.md) |
+| **Choose analyzers** | [OPA/Rego policy](docs/policy-as-code.md) · [Ghidra](docs/ghidra-analysis.md) · [Firmware](docs/firmware-analysis.md) · [Hardware](docs/hardware-analysis.md) · [Clang semantics](docs/cpp-semantic-analysis.md) |
 | **Inspect engineering** | [Benchmarks](docs/benchmarks.md) · [Experiments](docs/experiments/) · [Roadmap](docs/roadmap.md) · [Traceability](docs/traceability.md) |
 | **Review research** | [Repository scans](reports/repository-scans/README.md) · [Embedded evaluation](reports/evaluation/2026-11-14/README.md) · [Independent evaluation protocol](docs/research/independent-evaluation-protocol.md) |
 

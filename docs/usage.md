@@ -81,6 +81,8 @@ vigil-fuse scan path/to/embedded-linux-project --profile embedded-linux --plan
 
 Use `generic` for projects without a specific profile. FUSE does not run PlatformIO, `west`, CMake, compilers, or commands listed in `compile_commands.json`.
 
+Use `rtl` to focus discovery on Verilog/SystemVerilog, Yosys scripts, and common FPGA constraints. Generic scans also select `.v`, `.vh`, `.sv`, `.svh`, and `.ys` files. RTL presence does not imply build inclusion; see the [RTL security-analysis guide](rtl-security-analysis.md).
+
 ## Scan a project
 
 Run the scan and write its reports to a folder:
@@ -90,6 +92,15 @@ vigil-fuse scan path/to/embedded-project --output-dir .fuse-results
 ```
 
 The output folder contains `findings.json`, `findings.txt`, and `findings.sarif`. JSON preserves structured findings and coverage details. Text is convenient for terminal review. SARIF is available for compatible code-scanning tools.
+
+Optionally evaluate an explicit Rego policy or the bundled reference policy:
+
+```sh
+vigil-fuse scan path/to/embedded-project --policy reference:production-iot
+vigil-fuse scan path/to/embedded-project --policy path/to/policies --output-dir .fuse-results
+```
+
+Policy output is written separately as `policy-results.json`. It requires OPA on `PATH`; missing OPA or unsupported evidence produces `unknown` and never changes FUSE finding severity. See [policy-as-code](policy-as-code.md) for the input and result schemas and the policy boundary.
 
 Limit the scope with repeatable path patterns, or select a stable report label that does not contain a local path:
 
