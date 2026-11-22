@@ -208,8 +208,26 @@ The earlier six-repository native snapshot remains immutable: 18 runs, 167 UNREV
 
 ## Manual publication
 
-Consolidation is **NOT PUSHED**. The separately authorized CI-only fix `e411217` was pushed before this phase and both FUSE CI and CodeQL succeeded. Hosted checks for the consolidated local head remain unverified until manual publication.
+Consolidation is **NOT PUSHED**. The separately authorized CI-only fix `e411217` was pushed before this phase and both FUSE CI and CodeQL succeeded. Hosted checks for the consolidated local head remain unverified until manual publication. The required history-path gate described below still fails, so this is not an all-green or ready-to-publish result.
 
 ```sh
 git push origin main
 ```
+
+## Final artifact checks and unresolved gates
+
+Frozen implementation and package source: `98686fae9fe3b90d9f22922a1cc3765017e4bbea`. The final delivery commit changes audit documentation only. At this implementation snapshot, source tests passed with **638 passed, 11 skipped, 208 subtests**, and coverage **78%**, above the required 75%. Ruff, formatting (186 files), strict Mypy (96 source files), documentation validation (138 Markdown files), the 24-case native synthetic benchmark, and the 16-file performance smoke passed. Schema 1.12 and both final NVIDIA and clean-source reports validated.
+
+The final wheel and sdist built successfully and passed Twine 7 checks. The final wheel was installed and exercised outside the source checkout: **638 passed, 11 skipped, 208 subtests**, in 89.79 seconds. Packaged schemas, support matrix, policy, Ghidra Java exporter, PowerShell resources and setup catalog were verified. No model weights, environment file, virtualenv or excluded demo application was packaged.
+
+A real Windows PTY reported both stdin and stdout as TTYs. Installed CLI help, version, pwd, doctor, cd, scan plan, baseline help, clear and exit passed; the process exited 0. PowerShell Pester passed 9 tests; Julia 1.10.10 passed 20 tests and repeated seeded plans matched. R 4.6.1 accuracy/runtime workflows each produced two matching CSV outputs across repeated runs. Synthetic evidence does not establish field accuracy.
+
+The final installed-wheel NVIDIA repeat ran on the Desktop target with a captured pre-scan plan and clean frozen source/target states. The entire summary and findings arrays match the original native report. Its manifest records the actual frozen execution SHA and wheel digest. The first checkpoint's comparison file recorded a later comparison-time SHA; that file is preserved, and the final manifest explicitly corrects its interpretation rather than treating it as a frozen execution record.
+
+The source-only scan used a clean tracked export: 630 files scanned, zero skips, seven candidates, no high/critical candidates. Six are expected RTL regression fixtures; one credential-rule candidate is a manually reviewed false positive on parser token metadata compared with an enum string. These reviews are separate from the native campaign's 167 UNREVIEWED rows. The earlier broad checkout scan included the local development virtualenv and is retained as a dependency-contaminated exploratory result, not a source-only security claim.
+
+**Required repository-history path gate: FAIL.** Current tracked files contain no matching profile paths after synthetic redaction-test paths were changed to runtime construction without removing any redaction assertions (107 focused tests passed). Three imported historical test blobs still contain synthetic literals: `1e64466b0b5b9009cfa2cceacd93528893a625b6`, `60910a707e17b28a491bc27d9769375314d69962`, and `b52613ecd99c73ac051621437b514b6543223851`. The unchanged checker fails on these even in an independent clone containing only main history. No history rewrite or suppression was authorized or performed. This remaining gate requires an explicit policy decision before claiming all-green hosted checks.
+
+Mermaid rendering was invoked and failed because the Docker daemon pipe is unavailable; static documentation checks passed. The 11 pytest skips cover one Docker sandbox case, four native Clang cases, four Docker worker cases, one disposable Kubernetes case and one optional OPA case. Live Go/cluster, Verible/synthesis, external analyzers and hardware behavior remain unverified. The installed live model returned JSON but failed strict UNKNOWN acknowledgement validation and was rejected; no validator was loosened and no deterministic report was changed.
+
+All 139 initially discovered refs remain present. Concurrent source-main/installer advances and their tracking aliases are recorded separately from consolidation changes in the final external inventory. Original worktrees and the R worktree's pre-existing edits remain intact. Detailed logs, final manifests, package digests, branch inventories and delivery status are retained in the external consolidation evidence directory.
