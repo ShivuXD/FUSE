@@ -728,7 +728,8 @@ def _doctor(
                 f"  {check.display_name}: {check.version or 'version unavailable'} "
                 f"[{check.executable}] [{check.status}]"
             )
-    _safe_print(f"  Clang semantic analyzer: {clang_status.status}")
+    clang_availability = "available" if clang_status.status == "completed" else clang_status.status
+    _safe_print(f"  Clang semantic analyzer: {clang_availability}")
     _safe_print(f"  LLVM/Clang version: {clang_status.version or 'not detected'}")
     _safe_print(f"  Clang detail: {clang_status.detail}")
     _safe_print(f"  Ghidra: {ghidra.status} [{ghidra_status}]")
