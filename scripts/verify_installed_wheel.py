@@ -92,7 +92,7 @@ def main() -> int:
                 cwd=outside,
                 env=environment,
             ).stdout.strip()
-        ).is_relative_to(environment_path)
+        ).resolve().is_relative_to(environment_path.resolve())
         run(
             [str(python), "-m", "pip", "install", f"{wheels[0]}[test]"],
             cwd=outside,

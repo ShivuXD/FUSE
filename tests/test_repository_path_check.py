@@ -19,11 +19,13 @@ def test_detects_windows_profile_paths_without_matching_relative_paths() -> None
 
     assert has_personal_profile_path(path)
     assert not has_personal_profile_path(b"embedded-project/src/main.c")
+    assert not has_personal_profile_path(b"C:/Users/private/project/file.c")
 
 
 def test_detects_posix_home_paths_and_accepts_placeholders() -> None:
     path = b"project root: /" + b"home/" + b"fixture-user/embedded-project/src/main.c"
 
     assert has_personal_profile_path(path)
+    assert not has_personal_profile_path(b"/home/private/project/file.c")
     assert not has_personal_profile_path(b"<USER_HOME>/embedded-project/src/main.c")
     assert not has_personal_profile_path(b"https://example.com/api/device")

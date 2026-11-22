@@ -9,8 +9,14 @@ from pathlib import Path
 
 
 PERSONAL_PATH_PATTERNS = (
-    re.compile(rb"(?i)[a-z]:[/\\]+users[/\\]+[a-z0-9._-]+(?:[/\\][^\x00\r\n\t\"<>]*)?"),
-    re.compile(rb"(?i)/(?:users|home)/[a-z0-9._-]+(?:/[^\x00\r\n\t\"<>]*)?"),
+    re.compile(
+        rb"(?i)[a-z]:[/\\]+users[/\\]+(?!private(?:[/\\]|$))[a-z0-9._-]+"
+        rb"(?:[/\\][^\x00\r\n\t\"<>]*)?"
+    ),
+    re.compile(
+        rb"(?i)/(?:users|home)/(?!private(?:/|$))[a-z0-9._-]+"
+        rb"(?:/[^\x00\r\n\t\"<>]*)?"
+    ),
 )
 CHUNK_SIZE = 1024 * 1024
 OVERLAP_SIZE = 256
