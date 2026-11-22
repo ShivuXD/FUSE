@@ -6,7 +6,11 @@ build-backend = "setuptools.build_meta"
 name = "vigil-fuse"
 dynamic = ["version"]
 description = "FUSE, the Firmware & Unified Security Engine, by Team VIGIL"
-authors = [{ name = "Shantanu" }]
+authors = [
+    { name = "Shantanu" },
+    { name = "Shivam" },
+    { name = "Armaan Malhotra", email = "armaanmalhotra120@gmail.com" },
+]
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []

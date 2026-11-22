@@ -5,8 +5,14 @@ title: "FUSE: Firmware & Unified Security Engine"
 authors:
   - given-names: "Shantanu"
     affiliation: "Team VIGIL"
-version: "0.4.0"
-date-released: 2026-11-15
+  - given-names: "Shivam"
+    affiliation: "Team VIGIL"
+  - given-names: "Armaan"
+    family-names: "Malhotra"
+    email: "armaanmalhotra120@gmail.com"
+    affiliation: "Team VIGIL"
+version: "0.5.1"
+date-released: 2026-11-22
 url: "https://github.com/ShivuXD/fuse"
 repository-code: "https://github.com/ShivuXD/fuse"
 keywords:

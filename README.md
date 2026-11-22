@@ -35,7 +35,7 @@ These are related evidence layers, not five mandatory stages in every scan. A so
 <details>
 <summary>Contents</summary>
 
-[Pipeline](#how-fuse-scans-a-project) · [Architecture](#architecture) · [Evidence](#evidence-before-verdicts) · [Quick start](#quick-start) · [CLI](#cli-usage) · [Inputs](#what-fuse-analyzes) · [Clang](#compiler-semantic-cc-evidence) · [Outputs](#reports-you-can-review) · [Trust](#trust-boundaries) · [Validation](#built-to-be-testable) · [Languages](#built-polyglot-intentionally) · [Status](#current-state) · [Direction](#where-fuse-can-go-next) · [Docs](#documentation) · [Limits](#limitations) · [License](#license-and-attribution)
+[Pipeline](#how-fuse-scans-a-project) · [Architecture](#architecture) · [Evidence](#evidence-before-verdicts) · [Quick start](#quick-start) · [CLI](#cli-usage) · [Inputs](#what-fuse-analyzes) · [Clang](#compiler-semantic-cc-evidence) · [Outputs](#reports-you-can-review) · [Trust](#trust-boundaries) · [Validation](#built-to-be-testable) · [Languages](#built-polyglot-intentionally) · [Status](#current-state) · [Direction](#where-fuse-can-go-next) · [Docs](#documentation) · [Limits](#limitations) · [Competition](#competitive-landscape-and-architectural-differentiation) · [License](#license-and-attribution)
 
 </details>
 
@@ -276,6 +276,71 @@ Development has moved beyond the earlier maintenance-only completion declaration
 | **Inspect engineering** | [Benchmarks](docs/benchmarks.md) · [Experiments](docs/experiments/) · [Roadmap](docs/roadmap.md) · [Traceability](docs/traceability.md) |
 | **Review research** | [Repository scans](reports/repository-scans/README.md) · [Embedded evaluation](reports/evaluation/2026-11-14/README.md) · [Independent evaluation protocol](docs/research/independent-evaluation-protocol.md) |
 
+
+## Competitive landscape and architectural differentiation
+
+General-purpose application security testing (SAST), firmware extraction tools, and secret scanners operate in isolated silos. None bridge the gap between compiler syntax, physical silicon, printed circuit board (PCB) traces, and aerospace flight networks.
+
+```text
++-----------------------------------------------------------------------------+
+|                          THE SILO PROBLEM IN SECURITY                       |
++-----------------------------------------------------------------------------+
+
+   SOFTWARE SAST              FIRMWARE SCANNERS           HARDWARE EDA (PCB)
+  (Semgrep, CodeQL)            (EMBA, FACT)                  (KiCad, Altium)
+ +-----------------+        +-----------------+         +-----------------+
+ | Reads code text |        | Unpacks Linux   │         | Checks copper   |
+ | like a document |        | root filesystems│         | trace widths    |
+ +--------+--------+        +--------+--------+         +--------+--------+
+          |                          |                           |
+          v                          v                           v
+ X Blind to PCB wiring      X Blind to Bare-Metal       X Blind to software
+ X Blind to space physics   X 2-4 hr runtime, 40GB+     X Unaware of code
+ X Massive false alarms     X Peripheral wall halt        vulnerabilities
+          |                          |                           |
+          +--------------------------+---------------------------+
+                                     |
+                                     v
+                      +-----------------------------+
+                      |    FUSE UNIFIED ENGINE      |
+                      |  C AST + DTS + PCB + cFS    |
+                      +-----------------------------+
+```
+
+### Comparative benchmark matrix
+
+| Capability / Evaluation Dimension | FUSE (v0.5.1) | Enterprise SAST (Semgrep, SonarQube) | Firmware Unpackers (EMBA, FACT) | Commercial Platforms (Finite State, Cybellum) | Secret & SCA Scanners (Gitleaks, Snyk) |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Primary Domain Focus** | **Embedded, IoT & Aerospace** | Web & Cloud Apps | Linux Router Images | Enterprise Binary SCA | Cloud Git & Web Dependencies |
+| **Cross-Layer Physical Reachability** (KiCad `.net` S-expressions) | **Native (7 states)** | None | None | None | None |
+| **Device Tree Hardware Offsets** (Open Firmware `.dts` MMIO) | **Native** | None | None | None | None |
+| **Aerospace Software Bus Policy** (NASA cFS / cFE Message IDs) | **Native (`flight_policy.toml`)** | None | None | None | None |
+| **Cosmic Radiation Bit-Flip Resilience** (SEU / TMR Static Audit) | **Native** | None | None | None | None |
+| **Compiler AST Semantics** (C/C++ Control Flow) | **Clang 18.1 LibTooling** | Generic AST / Regex | Disassembly only | Disassembly only | Regex text matching |
+| **Execution Architecture & Dependencies** | **Air-gapped Python stdlib (0 pip deps)** | Heavy runtime / Cloud | 50+ toolchain, 40GB+ | Proprietary Cloud SaaS | Cloud / Package dependencies |
+| **Bare-Metal & RTOS Support** (FreeRTOS, Zephyr, cFS) | **Native** | Source only | Fails on non-Linux | Partial binary | None |
+| **Execution Performance on Enterprise Targets** | **<3.2s on 1,223 files** | 1 to 5 Minutes | 1 to 4 Hours | 15 to 60 Minutes (Cloud) | Seconds (Secrets only) |
+| **Epistemic Model & Uncertainty** | **5D Evidence (`UNKNOWN` first-class)** | Compressed CVSS score | Binary pass / fail | Subjective risk score | Binary pattern match |
+| **RTL Silicon Security** (Verilog / SystemVerilog) | **Native (Verible / Fallback)** | None | None | None | None |
+
+### Key category deficits
+
+1. **Why Enterprise SAST (Semgrep, SonarQube, CodeQL) Fails in Embedded:**
+   - **Hardware-Agnostic:** Code linters treat C source as text. They lack models for Memory-Mapped I/O (MMIO), register base addresses, and microcontroller pin multiplexing.
+   - **Zero Physical Reachability:** They cannot parse KiCad PCB Netlists or schematics. An insecure UART routine is reported as `CRITICAL`, even if the physical microcontroller pins are unrouted on copper or sealed inside an enclosure.
+   - **False-Positive Fatigue:** Unresolved macro expansions and pointer arithmetic produce 85–95% false-positive rates on bare-metal firmware.
+
+2. **Why Linux Firmware Scanners (EMBA, FACT, Binwalk) Fail in Aerospace:**
+   - **Linux-Centric Assumption:** They expect a Linux root filesystem (`/bin/sh`, `/etc/shadow`, dynamic libraries). They fail completely on bare-metal firmware, microcontrollers (STM32, ESP32, nRF52), and flight RTOS kernels (RTEMS, Zephyr, FreeRTOS).
+   - **Peripheral Wall in Emulation:** Dynamic emulation crashes when firmware writes to physical MMIO registers absent in QEMU. FUSE avoids this via bounded non-executing static analysis and CMSIS-SVD digital twin synthesis.
+   - **Glacial Runtime:** EMBA requires 1 to 4 hours per scan; FUSE executes in under 3.2 seconds.
+
+3. **Why Commercial Firmware Security SaaS (Finite State, Cybellum) Fails in Defense:**
+   - **Cloud SaaS Barrier:** Defense primes (Lockheed, Raytheon, NASA contractors) working in air-gapped SCIFs cannot upload classified, ITAR-restricted satellite firmware to third-party cloud servers.
+   - **No Schematic Integration:** They do not parse EDA netlists or flight software message buses.
+
+See [competitive landscape and deficit analysis](docs/competitive-landscape.md) for the full evaluation methodology.
+
 ## Limitations
 
 A clean report means enabled checks did not match within the scanned scope. Seven core native rules and four RTL candidate rules are narrow indicators, not a complete language or vulnerability analysis. Build metadata does not prove shipment; advisory matches do not prove vulnerable code runs. Static firmware evidence does not prove exploitability, and hardware inventories do not validate a board. Unsupported inputs and unavailable stages can leave partial coverage.
@@ -284,10 +349,10 @@ There is no physical-device or hardware-in-the-loop validation. Controlled fixtu
 
 ## License and attribution
 
-**FUSE · Firmware & Unified Security Engine · Team VIGIL.** Copyright © 2026 Shantanu.
+**FUSE · Firmware & Unified Security Engine · Team VIGIL.** Copyright © 2026 Shantanu, Shivam, and Armaan Malhotra.
 
 Source-available under the **VIGIL-FUSE Restricted Use License v1.2**, not an OSI-approved open-source license. Use, private modifications, analysis outputs and redistribution have distinct terms; read [LICENSE](LICENSE) before distributing copies or publishing modifications. Earlier license grants remain governed by the terms attached to those copies.
 
 [Third-party credits](docs/THIRD_PARTY_CREDITS.md) cover external tools and visual assets. Referencing a tool or standard does not imply endorsement or affiliation. [Security reporting](SECURITY.md) · [Contributing](CONTRIBUTING.md).
 
-Made by: Shantanu
+Made by: Shantanu, Shivam, and Armaan Malhotra
