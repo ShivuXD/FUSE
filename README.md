@@ -20,6 +20,8 @@
 
 FUSE inspects embedded and IoT projects without executing target code. Its deterministic Python core combines bounded source checks, selected build metadata, firmware evidence, hardware context and optional external analyzers into normalized findings with explicit coverage. It runs locally, with no required cloud service or AI model.
 
+FUSE brings source, build, firmware and hardware evidence together while keeping confidence, applicability and coverage distinct. This is the product's focused position; we have not completed a market-wide competitor survey and do not claim that no competing products exist.
+
 **SOURCE → BUILD → FIRMWARE → HARDWARE → FUSE EVIDENCE**
 
 These are related evidence layers, not five mandatory stages in every scan. A source literal, a selected build setting, an image reference and a debug-net connection answer different questions about a product.
@@ -249,7 +251,7 @@ Numerical and statistical research languages are not runtime components. Rust is
 
 **Alpha, source version 0.5.1.** Current `main` includes the core scanner, reports, interactive shell, optional firmware/hardware integrations, passive adaptive planning foundations, the experimental Clang evidence module and the probe-only Go operator. Source version does not establish a matching PyPI release.
 
-Development has moved beyond the earlier maintenance-only completion declaration. The Clang stage is not automatic scan policy, and Kubernetes job success is not security success. Explicit setup, optional Rego evaluation, bounded RTL analysis, embedded applicability reports, optional R/Julia research, and local reasoning are integrated. Optional local reasoning operates over deterministic FUSE evidence and writes a separate validated explanation artifact. It cannot create or change findings. The installed Qwen smoke produced valid JSON but failed UNKNOWN acknowledgement validation; rejected output is not accepted as evidence. See [execution limits](cluster/fuse-operator/README.md) and the [roadmap](docs/roadmap.md).
+Development has moved beyond the earlier maintenance-only completion declaration. The Clang stage is not automatic scan policy, and Kubernetes job success is not security success. Explicit setup, optional Rego evaluation, bounded RTL analysis, embedded applicability reports, optional R/Julia research, and local reasoning are integrated. Optional local reasoning reads bounded evidence from a completed deterministic finding and writes a separate validated explanation with suggested checks and remediation. It cannot create or change findings; suggestions are inert text, and FUSE does not author or apply patches. Model output is lower trust than scan evidence and needs human review. One installed Qwen smoke produced valid JSON but failed UNKNOWN acknowledgement validation; rejected output is not accepted as evidence. See [local reasoning](docs/local-reasoning.md), [execution limits](cluster/fuse-operator/README.md) and the [roadmap](docs/roadmap.md).
 
 ## Where FUSE can go next
 
@@ -257,6 +259,7 @@ Development has moved beyond the earlier maintenance-only completion declaration
 
 - Richer selected-build and applicability evidence with preserved uncertainty.
 - Broader policy coverage and reviewed correlation across evidence classes.
+- Evaluate the existing opt-in local reasoning feature for a future beta, including grounded explanations and useful remediation suggestions. Deterministic FUSE analysis remains responsible for findings; model output stays advisory and cannot apply patches. See [reasoning limits](docs/local-reasoning.md).
 - Stronger spacecraft protocol and silicon trust evidence beyond current parsing foundations.
 - Digital-twin fault injection beyond today's static model/export boundary.
 - Analyzer workers beyond the Kubernetes identity probe, with validated evidence handoff.
