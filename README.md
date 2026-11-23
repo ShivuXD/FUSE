@@ -290,4 +290,5 @@ Source-available under the **VIGIL-FUSE Restricted Use License v1.2**, not an OS
 
 [Third-party credits](docs/THIRD_PARTY_CREDITS.md) cover external tools and visual assets. Referencing a tool or standard does not imply endorsement or affiliation. [Security reporting](SECURITY.md) · [Contributing](CONTRIBUTING.md).
 
-Made by: Shantanu
+Made by: Team VIGIL
+Members: Shantanu, Armaan  & Shivam
